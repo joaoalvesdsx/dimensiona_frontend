@@ -20,7 +20,7 @@ const initialFormState: Omit<Baseline, "id"> = {
   nome: "",
   quantidade_funcionarios: 0,
   custo_total: "0",
-  setores: [],
+  setores: [] as SetorBaseline[],
 };
 
 export default function BaselinePage() {
@@ -97,7 +97,13 @@ export default function BaselinePage() {
     value: string | boolean
   ) => {
     const novosSetores = [...(formData.setores || [])];
-    novosSetores[index] = { ...novosSetores[index], [field]: value };
+    const setorAtual = novosSetores[index];
+    novosSetores[index] = {
+      nome: setorAtual?.nome ?? "",
+      custo: setorAtual?.custo ?? "0",
+      ativo: setorAtual?.ativo ?? true,
+      [field]: value,
+    };
     setFormData((prev) => ({ ...prev, setores: novosSetores }));
   };
 
@@ -127,9 +133,8 @@ export default function BaselinePage() {
         // Modo Edição
         const updateData: UpdateBaselineDTO = {
           ...formData,
-          setores: formData.setores,
+          setores: formData.setores ?? [],
         };
-        delete updateData.id;
         await updateBaseline(baseline.id, updateData);
       } else {
         // Modo Criação
@@ -137,7 +142,7 @@ export default function BaselinePage() {
           hospitalId,
           ...initialFormState,
           ...formData,
-          setores: formData.setores,
+          setores: formData.setores ?? [],
         };
         await createBaseline(createData);
       }
