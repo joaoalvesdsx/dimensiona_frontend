@@ -68,10 +68,12 @@ export default function BaselinePage() {
           }
         : null;
       console.log("Baseline parsed setores:", parsedBaseline?.setores);
-      setHospital(hospitalData);
-
-      // O baseline já vem dentro do objeto hospital
-      if (baselineData) {
+      setHospital(
+        parsedBaseline
+          ? { ...hospitalData, baseline: parsedBaseline }
+          : hospitalData
+      );
+      if (parsedBaseline) {
         setBaseline(parsedBaseline);
         setFormData(parsedBaseline);
       } else {
