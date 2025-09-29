@@ -5,8 +5,8 @@ import {
   getUnidadesNaoInternacao,
   createUnidadeInternacao,
   createUnidadeNaoInternacao,
-  updateUnidadeInternacao, // Adicionado
-  updateUnidadeNaoInternacao, // Adicionado
+  updateUnidadeInternacao,
+  updateUnidadeNaoInternacao,
   deleteUnidadeInternacao,
   deleteUnidadeNaoInternacao,
   getScpMetodos,
@@ -44,7 +44,7 @@ import {
 interface CargoUnidadeParaCriacao {
   cargoId: string;
   quantidade_funcionarios: number;
-  nome?: string; // Apenas para exibição no frontend
+  nome?: string; // Usado apenas para exibição no frontend
 }
 
 export default function SetoresPage() {
@@ -60,7 +60,7 @@ export default function SetoresPage() {
     tipoUnidade,
     setTipoUnidade,
   ] = useState<"internacao" | "nao-internacao" | null>(null);
-  const [editingUnidade, setEditingUnidade] = useState<Unidade | null>(null); // Novo estado para edição
+  const [editingUnidade, setEditingUnidade] = useState<Unidade | null>(null);
 
   // Estados para os formulários
   const [nome, setNome] = useState("");
@@ -117,41 +117,44 @@ export default function SetoresPage() {
     setCargosUnidade([]);
     setTipoUnidade(null);
     setIsFormVisible(false);
-    setEditingUnidade(null); // Limpa o estado de edição
+    setEditingUnidade(null);
     setSelectedCargoId("");
     setQuantidadeFuncionarios(1);
   };
 
   const handleAddNew = () => {
-    resetForm(); // Garante que o form comece limpo
+    resetForm();
     setIsFormVisible(true);
   };
 
-  // Função para popular o formulário para edição
   const handleEdit = (unidade: Unidade) => {
-    // Primeiro, limpa qualquer estado de formulário anterior
     resetForm();
-    
-    // Agora, preenche com os dados da unidade a ser editada
+
     setEditingUnidade(unidade);
     setTipoUnidade(unidade.tipo);
     setNome(unidade.nome);
     setHorasExtraReais(unidade.horas_extra_reais || "");
     setHorasExtraProjetadas(unidade.horas_extra_projetadas || "");
 
-    const cargosFormatados = (unidade.cargos_unidade || []).map((cu) => ({
-      cargoId: cu.cargoId,
-      quantidade_funcionarios: cu.quantidade_funcionarios,
-      
-    }));
+    const cargosFormatados = (unidade.cargos_unidade || []).map((cu) => {
+      const cargoInfo = cargosHospital.find(
+        (c) => c.id === (cu.cargo?.id || cu.cargoId)
+      );
+      return {
+        cargoId: cu.cargo?.id || cu.cargoId,
+        quantidade_funcionarios: cu.quantidade_funcionarios,
+        nome: cargoInfo?.nome || "Cargo desconhecido",
+      };
+    });
     setCargosUnidade(cargosFormatados);
 
     if (unidade.tipo === "internacao") {
       setNumeroLeitos(unidade.leitos?.length || 0);
-      setScpMetodoId(unidade.scpMetodoKey || "");
+      setScpMetodoId(unidade.scpMetodoId || "");
     } else {
-     
-    
+      setDescricao(unidade.descricao || "");
+    }
+
     setIsFormVisible(true);
   };
 
@@ -160,10 +163,7 @@ export default function SetoresPage() {
       alert("Selecione um cargo e informe uma quantidade válida.");
       return;
     }
-    const cargoExistente = cargos_unidade.find(
-      (c) => c.cargoId === selectedCargoId
-    );
-    if (cargoExistente) {
+    if (cargos_unidade.find((c) => c.cargoId === selectedCargoId)) {
       alert("Este cargo já foi adicionado.");
       return;
     }
@@ -192,52 +192,49 @@ export default function SetoresPage() {
     if (!hospitalId || !tipoUnidade) return;
 
     try {
-      const payloadCargos = cargos_unidade.map(({ nome, ...resto }) => resto);
+        const isEditing = !!editingUnidade;
+        const payloadCargos = cargos_unidade.map(({ nome, ...resto }) => resto);
 
-      const isEditing = !!editingUnidade;
+        if (isEditing) {
+            // --- LÓGICA DE ATUALIZAÇÃO (em uma única etapa) ---
+            if (tipoUnidade === 'internacao') {
+                await updateUnidadeInternacao(editingUnidade!.id, { nome, scpMetodoId, horas_extra_reais, horas_extra_projetadas, cargos_unidade: payloadCargos });
+            } else {
+                await updateUnidadeNaoInternacao(editingUnidade!.id, { nome, descricao, horas_extra_reais, horas_extra_projetadas, cargos_unidade: payloadCargos });
+            }
+        } else {
+            // --- LÓGICA DE CRIAÇÃO (em duas etapas) ---
+            let novaUnidade;
+            // 1. Criar a unidade SEM os cargos
+            if (tipoUnidade === 'internacao') {
+                novaUnidade = await createUnidadeInternacao({ hospitalId, nome, numeroLeitos, scpMetodoId, horas_extra_reais, horas_extra_projetadas });
+            } else {
+                novaUnidade = await createUnidadeNaoInternacao({ hospitalId, nome, descricao, horas_extra_reais, horas_extra_projetadas });
+            }
 
-      if (tipoUnidade === "internacao") {
-        const payload = {
-          hospitalId,
-          nome,
-          numeroLeitos,
-          scpMetodoId: scpMetodoId || undefined,
-          horas_extra_reais,
-          horas_extra_projetadas,
-          cargos_unidade: payloadCargos,
-        };
-        if (isEditing) {
-          await updateUnidadeInternacao(editingUnidade!.id, payload);
-        } else {
-          await createUnidadeInternacao(payload);
+            // 2. Se houver cargos, ATUALIZAR a unidade recém-criada com eles
+            if (payloadCargos.length > 0) {
+                if (tipoUnidade === 'internacao') {
+                    await updateUnidadeInternacao(novaUnidade.id, { cargos_unidade: payloadCargos });
+                } else {
+                    await updateUnidadeNaoInternacao(novaUnidade.id, { cargos_unidade: payloadCargos });
+                }
+            }
         }
-      } else {
-        // não-internação
-        const payload = {
-          hospitalId,
-          nome,
-          descricao,
-          horas_extra_reais,
-          horas_extra_projetadas,
-          cargos_unidade: payloadCargos,
-        };
-        if (isEditing) {
-          await updateUnidadeNaoInternacao(editingUnidade!.id, payload);
-        } else {
-          await createUnidadeNaoInternacao(payload);
-        }
-      }
-      resetForm();
-      fetchData();
+
+        resetForm();
+        fetchData();
     } catch (err) {
-      const action = editingUnidade ? "atualizar" : "criar";
-      setError(`Falha ao ${action} o setor de ${tipoUnidade}.`);
+        const action = editingUnidade ? "atualizar" : "criar";
+        setError(`Falha ao ${action} o setor. Detalhes: ${err instanceof Error ? err.message : String(err)}`);
     }
-  };
+};
+
 
   const handleDelete = async (unidade: Unidade) => {
-    const confirmMessage = `Tem a certeza que deseja excluir o setor "${unidade.nome}"?`;
-    if (window.confirm(confirmMessage)) {
+    if (
+      window.confirm(`Tem certeza que deseja excluir o setor "${unidade.nome}"?`)
+    ) {
       try {
         if (unidade.tipo === "internacao") {
           await deleteUnidadeInternacao(unidade.id);
@@ -338,7 +335,7 @@ export default function SetoresPage() {
                       onChange={(e) => setNumeroLeitos(Number(e.target.value))}
                       placeholder="Número de Leitos"
                       required
-                      disabled={!!editingUnidade} // Impede a alteração de leitos na edição
+                      disabled={!!editingUnidade}
                     />
                     <Select onValueChange={setScpMetodoId} value={scpMetodoId}>
                       <SelectTrigger>
@@ -356,8 +353,7 @@ export default function SetoresPage() {
                 )}
                 {editingUnidade && tipoUnidade === "internacao" && (
                   <p className="text-xs text-gray-500">
-                    O número de leitos não pode ser alterado após a criação da
-                    unidade.
+                    O número de leitos não pode ser alterado na edição.
                   </p>
                 )}
 
@@ -406,7 +402,7 @@ export default function SetoresPage() {
                     </Button>
                   </div>
                   {cargos_unidade.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 mt-2">
                       {cargos_unidade.map((cargo) => (
                         <div
                           key={cargo.cargoId}
@@ -434,9 +430,9 @@ export default function SetoresPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setTipoUnidade(null)}
+                    onClick={resetForm}
                   >
-                    Voltar
+                    {editingUnidade ? "Cancelar Edição" : "Voltar"}
                   </Button>
                   <Button type="submit">
                     {editingUnidade ? "Salvar Alterações" : "Salvar Setor"}
@@ -450,7 +446,7 @@ export default function SetoresPage() {
 
       <Card>
         <CardContent className="p-6">
-          {loading && <p>A carregar...</p>}
+          {loading && <p>Carregando...</p>}
           {error && <p className="text-red-500">{error}</p>}
           {!loading && !error && (
             <Table>
@@ -511,7 +507,7 @@ export default function SetoresPage() {
                       colSpan={3}
                       className="text-center text-sm text-gray-500"
                     >
-                      Nenhum setor registado.
+                      Nenhum setor cadastrado.
                     </TableCell>
                   </TableRow>
                 )}
@@ -522,5 +518,4 @@ export default function SetoresPage() {
       </Card>
     </div>
   );
-}
 }
