@@ -44,12 +44,36 @@ export default function BaselinePage() {
       const baselineData = await getBaselinesByHospitalId(hospitalId);
       console.log("Dados do hospital:", hospitalData);
       console.log("Dados do baseline:", baselineData);
+
+      const baselineObj = Array.isArray(baselineData)
+        ? baselineData[0]
+        : baselineData;
+
+      // Parseia setores que vêm como strings JSON para objetos antes de setar estado
+      const parsedBaseline = baselineObj
+        ? {
+            ...baselineObj,
+            setores: Array.isArray(baselineObj.setores)
+              ? baselineObj.setores.map((s: any) => {
+                  if (typeof s === "string") {
+                    try {
+                      return JSON.parse(s);
+                    } catch {
+                      return s;
+                    }
+                  }
+                  return s;
+                })
+              : baselineObj.setores ?? [],
+          }
+        : null;
+      console.log("Baseline parsed setores:", parsedBaseline?.setores);
       setHospital(hospitalData);
 
       // O baseline já vem dentro do objeto hospital
       if (baselineData) {
-        setBaseline(baselineData);
-        setFormData(baselineData);
+        setBaseline(parsedBaseline);
+        setFormData(parsedBaseline);
       } else {
         setBaseline(null);
         setFormData(initialFormState);
@@ -293,17 +317,7 @@ export default function BaselinePage() {
                         handleSetorChange(index, "custo", value)
                       }
                     />
-                    <label className="flex items-center gap-2 text-sm p-2">
-                      <input
-                        type="checkbox"
-                        checked={setor.ativo}
-                        onChange={(e) =>
-                          handleSetorChange(index, "ativo", e.target.checked)
-                        }
-                        className="rounded h-4 w-4"
-                      />
-                      Ativo
-                    </label>
+
                     <button
                       type="button"
                       onClick={() => removeSetor(index)}
