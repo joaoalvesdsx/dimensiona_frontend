@@ -527,10 +527,10 @@ export const deleteCargo = async (
 // BASELINE
 export const getBaselinesByHospitalId = async (
   hospitalId: string
-): Promise<Baseline[]> => {
+): Promise<Baseline> => {
   const response = await api.get("/baselines");
-  const allBaselines = response.data as (Baseline & { hospital: Hospital })[];
-  return allBaselines.filter((b) => b.hospital?.id === hospitalId);
+  const Baselines = response.data as Baseline;
+  return Baselines || null;
 };
 export const createBaseline = async (
   data: CreateBaselineDTO
