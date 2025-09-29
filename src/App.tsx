@@ -24,6 +24,7 @@ import ParametrosPage from './features/admin-hospital/pages/ParametrosPage';
 import QuestionariosPage from './features/admin-global/pages/QuestionariosPage';
 import HistoricoColetasPage from './features/admin-hospital/pages/HistoricoColetasPage';
 import AdminsPage from './features/admin-global/pages/AdminsPage'; // Novo
+import HospitalDashboardPage from './features/colab/pages/DashboardPage';
 
 
 const HospitalDashboardPlaceholder = () => <div className="text-3xl font-bold">Dashboard do Hospital</div>;
@@ -51,7 +52,7 @@ function App() {
 
         {/* Rotas de Admin de Hospital */}
         <Route path="/hospital/:hospitalId" element={<HospitalAdminLayout />}>
-           <Route path="dashboard" element={<HospitalDashboardPlaceholder />} />
+           <Route path="dashboard" element={<HospitalDashboardPage />} />
            <Route path="unidades-leitos" element={<MinhasUnidadesPage />} />
            <Route path="setores" element={<SetoresPage />} />
            <Route path="setores/:setorId" element={<SetorDetailPage />} />
