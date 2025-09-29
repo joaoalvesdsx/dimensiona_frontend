@@ -48,6 +48,9 @@ export interface UnidadeInternacao {
   scpMetodoKey?: string | null;
   tipo: "internacao";
   hospitalId: string;
+  horas_extra_reais?: string;
+  horas_extra_projetadas?: string;
+  cargos_unidade?: CargoUnidade[];
 }
 export interface UnidadeNaoInternacao {
   id: string;
@@ -55,20 +58,42 @@ export interface UnidadeNaoInternacao {
   tipo: "nao-internacao";
   sitiosFuncionais: SitioFuncional[];
   hospitalId: string;
+  horas_extra_reais?: string;
+  horas_extra_projetadas?: string;
+  cargos_unidade?: CargoUnidade[];
 }
 export type Unidade = UnidadeInternacao | UnidadeNaoInternacao;
+
+export type CargoUnidade = {
+  cargoId: string;
+  
+  quantidade_funcionarios: number;
+  
+};
 
 export type CreateUnidadeInternacaoDTO = {
   hospitalId: string;
   nome: string;
   numeroLeitos: number;
   scpMetodoId?: string;
+  horas_extra_reais?: string;
+  horas_extra_projetadas?: string;
+  cargos_unidade: CargoUnidade[];
 };
 export type CreateUnidadeNaoInternacaoDTO = {
   hospitalId: string;
   nome: string;
   descricao?: string;
+  horas_extra_reais?: string;
+  horas_extra_projetadas?: string;
+  cargos_unidade: CargoUnidade[];
 };
+
+
+export type UpdateUnidadeInternacaoDTO = Partial<CreateUnidadeInternacaoDTO>;
+export type UpdateUnidadeNaoInternacaoDTO =
+  Partial<CreateUnidadeNaoInternacaoDTO>
+
 
 export interface Usuario {
   id: string;
@@ -438,6 +463,25 @@ export const createUnidadeNaoInternacao = async (
   const response = await api.post("/unidades-nao-internacao", data);
   return response.data;
 };
+
+export const updateUnidadeInternacao = async (
+  setorId: string,
+  data: UpdateUnidadeInternacaoDTO
+): Promise<UnidadeInternacao> => {
+  const response = await api.put(`/unidades/${setorId}`, data);
+  return response.data;
+};
+
+export const updateUnidadeNaoInternacao = async (
+  setorId: string,
+  data: UpdateUnidadeNaoInternacaoDTO
+): Promise<UnidadeNaoInternacao> => {
+  const response = await api.put(`/unidades-nao-internacao/${setorId}`, data);
+  return response.data;
+};
+
+
+
 export const deleteUnidadeInternacao = async (
   setorId: string
 ): Promise<void> => {
