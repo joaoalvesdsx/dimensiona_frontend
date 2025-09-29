@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../../../contexts/AuthContext";
-import { getUnidadesInternacao, UnidadeInternacao } from "../../../lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUnidadesInternacao, UnidadeInternacao } from "@/lib/api";
 import { Link, useParams } from "react-router-dom";
 import { Building } from "lucide-react";
 

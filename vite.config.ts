@@ -15,7 +15,7 @@ export default defineConfig({
     proxy: {
       // Redireciona requisições de /api para o seu backend
       "/api": {
-        target: "http://localhost:3110",
+        target: "http://localhost:3000",
         changeOrigin: true,
         // Remove o '/api' antes de enviar para o backend
         rewrite: (path) => path.replace(/^\/api/, ""),

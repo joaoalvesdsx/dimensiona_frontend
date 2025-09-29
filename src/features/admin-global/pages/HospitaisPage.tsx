@@ -9,7 +9,7 @@ import {
   Hospital,
   CreateHospitalDTO,
   Regiao,
-} from "../../../lib/api";
+} from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 
 const initialFormState: Partial<CreateHospitalDTO> = {

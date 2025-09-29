@@ -8,7 +8,7 @@ import {
   Usuario,
   CreateUsuarioDTO,
   UpdateUsuarioDTO,
-} from "../../../lib/api";
+} from "@/lib/api";
 import { Trash2, Edit } from "lucide-react";
 
 // O DTO para criação inclui a senha inicial
@@ -16,7 +16,7 @@ const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
   nome: "",
   email: "",
   cpf: "",
-  permissao: "COMUM",
+  permissao: "comum",
 };
 
 export default function UsuariosPage() {
@@ -91,7 +91,8 @@ export default function UsuariosPage() {
           nome: formData.nome || "",
           email: formData.email || "",
           cpf: formData.cpf || "",
-          permissao: formData.permissao || "COMUM",
+          permissao: formData.permissao || "comum",
+          senha: cpfNumeros, // Define o CPF (apenas números) como a palavra-passe
         };
         await createUsuario(createData);
       }
@@ -167,12 +168,13 @@ export default function UsuariosPage() {
               />
               <select
                 name="permissao"
-                value={formData.permissao || "COMUM"}
+                value={formData.permissao || "comum"}
                 onChange={handleChange}
                 className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
               >
-                <option value="COMUM">Comum</option>
-                <option value="GESTOR">Gestor</option>
+                <option value="comum">Colaborador</option>
+                <option value="gestor">Gestor</option>
+                <option value="admin">Admin (de Hospital)</option>
               </select>
             </div>
             <div className="flex justify-end mt-4">
