@@ -8,7 +8,7 @@ import {
   Leito,
   CreateLeitoDTO,
   UpdateLeitoDTO,
-} from "../../../lib/api";
+} from "@/lib/api";
 import { Trash2, Edit, BedDouble } from "lucide-react";
 
 export default function LeitosAdminPage() {

@@ -9,8 +9,8 @@ import {
   StatusLeito,
   admitirPaciente,
   liberarSessao,
-} from "../../../lib/api";
-import { useAuth } from "../../../contexts/AuthContext";
+} from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Bed, User, CheckCircle, Star, LogOut } from "lucide-react";
 
 const getStatusInfo = (status: StatusLeito) => {

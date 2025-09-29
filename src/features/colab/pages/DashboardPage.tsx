@@ -1,210 +1,178 @@
-import { useState, useEffect, FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
-import { getBaselinesByHospitalId, createBaseline, updateBaseline, deleteBaseline, Baseline, CreateBaselineDTO, UpdateBaselineDTO, SetorBaseline } from '@/lib/api';
-import { Trash2, Edit, PlusCircle } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import {
+  getHospitalStats,
+  getBaselinesByHospitalId,
+  HospitalStats,
+  Baseline,
+} from "@/lib/api";
+import { Download, DollarSign, BarChart, Users, Building } from "lucide-react";
 
-const initialFormState: Omit<Baseline, 'id'> = {
-    nome: '',
-    quantidade_funcionarios: 0,
-    custo_total: '',
-    setores: [],
-};
+// Importando os componentes de gráfico reais
+import { OccupationRateChart } from "@/features/admin-hospital/components/OccupationRateChart";
+import { PizzaChart } from "@/features/admin-hospital/components/PizzaChart";
+import { HeatScaleChart } from "@/features/admin-hospital/components/HeatScaleChart";
+import { WaterfallChart } from "@/features/admin-hospital/components/WaterfallChart";
+import {
+  ChartData,
+  HeatMapData,
+  WaterfallData,
+} from "@/features/admin-hospital/types/hospital";
 
-export default function BaselinePage() {
+// --- Componente de Card para Métricas ---
+const MetricCard = ({ title, value, icon: Icon }: any) => (
+  <div className="bg-white p-4 rounded-lg border flex items-center gap-4">
+    <div className="bg-primary/10 p-3 rounded-full">
+      <Icon className="h-6 w-6 text-primary" />
+    </div>
+    <div>
+      <p className="text-sm text-gray-500">{title}</p>
+      <p className="text-2xl font-bold text-primary">{value}</p>
+    </div>
+  </div>
+);
+
+export default function HospitalDashboardPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
+  const [stats, setStats] = useState<HospitalStats | null>(null);
   const [baselines, setBaselines] = useState<Baseline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [isFormVisible, setIsFormVisible] = useState(false);
-  const [formData, setFormData] = useState<Partial<Baseline>>(initialFormState);
-
-  const fetchBaselines = async () => {
-    if (!hospitalId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getBaselinesByHospitalId(hospitalId);
-      setBaselines(data);
-    } catch (err) {
-      setError('Falha ao carregar os baselines.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchBaselines();
+    if (!hospitalId) return;
+
+    const fetchAllData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [statsData, baselinesData] = await Promise.all([
+          getHospitalStats(hospitalId),
+          getBaselinesByHospitalId(hospitalId),
+        ]);
+        setStats(statsData);
+        setBaselines(baselinesData);
+      } catch (err) {
+        setError("Falha ao carregar os dados do dashboard.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
   }, [hospitalId]);
 
-  const handleEdit = (baseline: Baseline) => {
-    setFormData(baseline);
-    setIsFormVisible(true);
-  };
+  if (loading) return <div>Carregando dashboard...</div>;
+  if (error) return <div className="text-red-500 p-4">{error}</div>;
+  if (!stats)
+    return (
+      <div>Não foram encontrados dados estatísticos para este hospital.</div>
+    );
 
-  const handleAddNew = () => {
-    setFormData(initialFormState);
-    setIsFormVisible(true);
-  };
+  // --- Preparação dos Dados para os Gráficos ---
 
-  const handleCancel = () => {
-    setIsFormVisible(false);
-    setFormData(initialFormState);
-  };
+  const pizzaData: ChartData[] = stats.unidades.map((u, index) => ({
+    name: u.unidade.nome,
+    value: u.totalLeitos, // Usando total de leitos como valor para o gráfico de pizza
+    color: ["#0b6f88", "#003151", "#4a90e2", "#7bbfd3", "#d0e1e8"][index % 5],
+  }));
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'number' ? Number(value) : value }));
-  };
+  const heatMapData: HeatMapData[] = stats.unidades.map((u) => ({
+    hospital: hospitalId || "N/A",
+    sector: u.unidade.nome,
+    value: Math.round(u.ocupacao.taxaOcupacao * 100),
+    status:
+      u.ocupacao.taxaOcupacao >= 0.8
+        ? "high"
+        : u.ocupacao.taxaOcupacao >= 0.6
+        ? "medium"
+        : "low",
+  }));
 
-  const handleSetorChange = (index: number, field: keyof SetorBaseline, value: string | boolean) => {
-      const novosSetores = [...(formData.setores || [])];
-      novosSetores[index] = { ...novosSetores[index], [field]: value };
-      setFormData(prev => ({ ...prev, setores: novosSetores }));
-  };
+  const waterfallData: WaterfallData[] = baselines.flatMap((b) =>
+    b.setores.map((setor, index, arr) => ({
+      name: setor.nome,
+      value: parseFloat(setor.custo) || 0,
+      cumulative: arr
+        .slice(0, index + 1)
+        .reduce((acc, s) => acc + (parseFloat(s.custo) || 0), 0),
+      type: "sector" as const,
+    }))
+  );
+  if (baselines.length > 0) {
+    const totalCost = parseFloat(baselines[0].custo_total) || 0;
+    waterfallData.unshift({
+      name: "Custo Total Baseline",
+      value: totalCost,
+      cumulative: totalCost,
+      type: "total",
+    });
+  }
 
-  const addSetor = () => {
-      const novosSetores = [...(formData.setores || []), { nome: '', custo: '', ativo: true }];
-      setFormData(prev => ({ ...prev, setores: novosSetores }));
-  };
-
-  const removeSetor = (index: number) => {
-      const novosSetores = [...(formData.setores || [])];
-      novosSetores.splice(index, 1);
-      setFormData(prev => ({ ...prev, setores: novosSetores }));
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!hospitalId || !formData.nome?.trim()) return;
-
-    try {
-      if (formData.id) {
-        const updateData: UpdateBaselineDTO = { ...formData };
-        delete updateData.id;
-        await updateBaseline(formData.id, updateData);
-      } else {
-        const createData: CreateBaselineDTO = { hospitalId, ...initialFormState, ...formData };
-        await createBaseline(createData);
-      }
-      handleCancel();
-      fetchBaselines();
-    } catch (err) {
-      setError(formData.id ? 'Falha ao atualizar o baseline.' : 'Falha ao criar o baseline.');
-      console.error(err);
-    }
-  };
-
-  const handleDelete = async (baselineId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este baseline?')) {
-      try {
-        await deleteBaseline(baselineId);
-        fetchBaselines();
-      } catch (err) {
-        setError('Falha ao excluir o baseline.');
-        console.error(err);
-      }
-    }
+  const occupationMetrics = {
+    avgOccupation: Math.round(stats.taxaOcupacaoMedia * 100),
+    maxOccupation: Math.max(...heatMapData.map((d) => d.value)),
+    minOccupation: Math.min(...heatMapData.map((d) => d.value)),
+    totalSectors: stats.unidades.length,
+    overcrowded: heatMapData.filter((d) => d.status === "high").length,
+    underutilized: heatMapData.filter((d) => d.status === "low").length,
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">Gerenciamento de Baseline</h1>
-        <button
-          onClick={isFormVisible ? handleCancel : handleAddNew}
-          className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
-        >
-          {isFormVisible ? 'Cancelar' : '+ Novo Baseline'}
-        </button>
+    <div className="space-y-8">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-primary">
+            Dashboard do Hospital
+          </h1>
+          <p className="text-gray-500">Visão geral dos indicadores chave.</p>
+        </div>
+        {/* Funcionalidade de download pode ser adicionada aqui */}
       </div>
 
-      {isFormVisible && (
-        <div className="bg-white p-6 rounded-lg border animate-fade-in-down">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <h2 className="text-xl font-semibold text-primary">{formData.id ? 'Editar Baseline' : 'Adicionar Novo Baseline'}</h2>
+      {/* Cards de Métricas Principais */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Taxa de Ocupação Média"
+          value={`${occupationMetrics.avgOccupation}%`}
+          icon={BarChart}
+        />
+        <MetricCard
+          title="Total de Leitos"
+          value={stats.totalLeitos}
+          icon={Building}
+        />
+        <MetricCard
+          title="Custo Total (Baseline)"
+          value={`R$ ${(
+            parseFloat(baselines[0]?.custo_total) / 1000 || 0
+          ).toFixed(1)}k`}
+          icon={DollarSign}
+        />
+        <MetricCard
+          title="Total de Colaboradores"
+          value={baselines[0]?.quantidade_funcionarios || 0}
+          icon={Users}
+        />
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b pb-6">
-              <input name="nome" value={formData.nome || ''} onChange={handleChange} placeholder="Nome do Baseline" required className="p-2 border rounded-md"/>
-              <input name="quantidade_funcionarios" type="number" value={formData.quantidade_funcionarios || ''} onChange={handleChange} placeholder="Qtd. Funcionários" className="p-2 border rounded-md"/>
-              <input name="custo_total" value={formData.custo_total || ''} onChange={handleChange} placeholder="Custo Total (R$)" className="p-2 border rounded-md"/>
-            </div>
+      <div className="space-y-6">
+        <OccupationRateChart data={heatMapData} metrics={occupationMetrics} />
 
-            <div>
-                <h3 className="text-lg font-medium text-gray-800 mb-2">Setores de Custo</h3>
-                <div className="space-y-3">
-                    {formData.setores?.map((setor, index) => (
-                        <div key={index} className="grid grid-cols-[1fr,1fr,auto,auto] gap-3 items-center">
-                            <input value={setor.nome} onChange={(e) => handleSetorChange(index, 'nome', e.target.value)} placeholder="Nome do Setor" className="p-2 border rounded-md"/>
-                            <input value={setor.custo} onChange={(e) => handleSetorChange(index, 'custo', e.target.value)} placeholder="Custo (R$)" className="p-2 border rounded-md"/>
-                            <label className="flex items-center gap-2 text-sm p-2">
-                                <input type="checkbox" checked={setor.ativo} onChange={(e) => handleSetorChange(index, 'ativo', e.target.checked)} className="rounded h-4 w-4"/>
-                                Ativo
-                            </label>
-                            <button type="button" onClick={() => removeSetor(index)} className="text-red-500 hover:text-red-700 justify-self-center">
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
-                    ))}
-                </div>
-                <button type="button" onClick={addSetor} className="mt-4 flex items-center gap-2 text-sm text-secondary hover:underline font-medium">
-                    <PlusCircle size={18}/> Adicionar Setor
-                </button>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t">
-              <button type="submit" className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700">
-                Salvar Baseline
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Tabela de Baselines */}
-       <div className="bg-white p-6 rounded-lg border">
-        {loading && <p>A carregar...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Funcionários</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Custo Total</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {baselines.length > 0 ? (
-                  baselines.map((baseline) => (
-                    <tr key={baseline.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{baseline.nome}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{baseline.quantidade_funcionarios || 0}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{baseline.custo_total ? `R$ ${baseline.custo_total}` : '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                        <button onClick={() => handleEdit(baseline)} className="text-secondary hover:opacity-70">
-                          <Edit size={20} />
-                        </button>
-                        <button onClick={() => handleDelete(baseline.id)} className="text-red-600 hover:opacity-70">
-                          <Trash2 size={20} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
-                      Nenhum baseline registado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        {baselines.length > 0 && (
+          <WaterfallChart
+            data={waterfallData}
+            title="Análise de Custos (Baseline)"
+          />
         )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PizzaChart
+            data={pizzaData}
+            title="Distribuição de Leitos por Unidade"
+          />
+          <HeatScaleChart data={heatMapData} title="Mapa de Calor - Ocupação" />
+        </div>
       </div>
     </div>
   );
