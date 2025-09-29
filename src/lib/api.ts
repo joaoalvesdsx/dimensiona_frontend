@@ -1,0 +1,513 @@
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:3110', // Usamos o proxy
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+
+// --- INTERFACES GERAIS ---
+export interface Hospital {
+  id: string;
+  nome: string;
+  cnpj: string;
+  endereco: string;
+  telefone: string;
+  regiao?: Regiao;
+}
+
+export type CreateHospitalDTO = Omit<Hospital, 'id' | 'regiao'> & { regiaoId?: string };
+export type UpdateHospitalDTO = Partial<CreateHospitalDTO>;
+
+export interface UnidadeInternacao {
+    id: string;
+    nome: string;
+    leitos: Leito[];
+    scpMetodoKey?: string | null;
+    tipo: 'internacao';
+    hospitalId: string;
+}
+export interface UnidadeNaoInternacao {
+    id: string;
+    nome: string;
+    tipo: 'nao-internacao';
+    sitiosFuncionais: SitioFuncional[];
+    hospitalId: string;
+}
+export type Unidade = UnidadeInternacao | UnidadeNaoInternacao;
+
+export type CreateUnidadeInternacaoDTO = {
+    hospitalId: string;
+    nome: string;
+    numeroLeitos: number;
+    scpMetodoId?: string;
+};
+export type CreateUnidadeNaoInternacaoDTO = {
+    hospitalId: string;
+    nome: string;
+    descricao?: string;
+};
+
+export interface Usuario {
+  id: string;
+  nome: string;
+  email: string;
+  cpf: string;
+  permissao: 'admin' | 'gestor' | 'comum';
+}
+export interface CreateUsuarioDTO {
+  hospitalId: string;
+  nome: string;
+  email: string;
+  cpf: string;
+  permissao: 'admin' | 'gestor' | 'comum';
+  senha?: string;
+}
+export type UpdateUsuarioDTO = Partial<Omit<CreateUsuarioDTO, 'hospitalId' | 'senha'>>;
+
+export interface Cargo {
+  id: string;
+  nome: string;
+  salario?: string;
+  carga_horaria?: string;
+  descricao?: string;
+  adicionais_tributos?: string;
+}
+export type CreateCargoDTO = Omit<Cargo, 'id'> & { hospitalId: string };
+export type UpdateCargoDTO = Partial<Omit<Cargo, 'id'>>;
+
+export interface SetorBaseline {
+    nome: string;
+    custo: string;
+    ativo: boolean;
+}
+export interface Baseline {
+    id: string;
+    nome: string;
+    quantidade_funcionarios: number;
+    custo_total: string;
+    setores: SetorBaseline[];
+}
+export type CreateBaselineDTO = Omit<Baseline, 'id'> & { hospitalId: string };
+export type UpdateBaselineDTO = Partial<Omit<Baseline, 'id'>>;
+
+export interface Rede {
+    id: string;
+    nome: string;
+}
+
+export interface Grupo {
+    id: string;
+    nome: string;
+    rede: Rede;
+}
+export interface CreateGrupoDTO {
+    nome: string;
+    redeId: string;
+}
+
+export interface Regiao {
+    id: string;
+    nome: string;
+    grupo: Grupo;
+}
+export interface CreateRegiaoDTO {
+    nome: string;
+    grupoId: string;
+}
+export interface UpdateRegiaoDTO {
+    nome?: string;
+    grupoId?: string;
+}
+
+export enum StatusLeito {
+  ATIVO = "ATIVO",
+  PENDENTE = "PENDENTE",
+  VAGO = "VAGO",
+  INATIVO = "INATIVO",
+}
+export interface Leito {
+    id: string;
+    numero: string;
+    status: StatusLeito;
+}
+export interface CreateLeitoDTO {
+    unidadeId: string;
+    numero: string;
+}
+export type UpdateLeitoDTO = Partial<CreateLeitoDTO>;
+
+
+export interface SessaoAtiva {
+    id: string;
+    leito: Leito;
+    prontuario: string | null;
+    classificacao: string;
+    itens: Record<string, number>;
+}
+export interface AdmitirPacienteDTO {
+    leitoId: string;
+    unidadeId: string;
+    prontuario: string;
+    colaboradorId: string;
+    scp: string;
+}
+export interface ScpQuestion {
+    key: string;
+    text: string;
+    options: { label: string; value: number }[];
+}
+export interface ScpSchema {
+    scp: string;
+    title: string;
+    questions: ScpQuestion[];
+}
+export interface UpdateSessaoDTO {
+    itens: Record<string, number>;
+    colaboradorId: string;
+}
+export interface ScpMetodo {
+    id: string;
+    key: string;
+    title: string;
+    description?: string;
+    questions: ScpQuestion[];
+    faixas: any[];
+}
+export type CreateScpMetodoDTO = Omit<ScpMetodo, 'id'>;
+
+export interface Dimensionamento {
+    id: string;
+    unidadeId: string;
+    enfermeiroCargoHorario: number;
+    enfermeiroPercentualEquipe: number;
+    tecnicoEnfermagemCargoHorario: number;
+    tecnicoEnfermagemPercentualEquipe: number;
+    indiceTecnico: number;
+    idadeEquipeRestricoes: "sim" | "nao";
+    quantidadeLeitos: number;
+    taxaOcupacao: number;
+    pcm: number; pci: number; pcad: number; pcsi: number; pcit: number;
+    createdAt: string;
+}
+export type CreateDimensionamentoDTO = Omit<Dimensionamento, 'id' | 'unidadeId' | 'createdAt'>;
+
+export interface HospitalStats {
+  totalLeitos: number;
+  taxaOcupacaoMedia: number;
+  unidades: Array<{
+    distribuicao: Record<string, number>;
+    ocupacao: {
+      taxaOcupacao: number;
+    };
+    totalLeitos: number;
+    unidade: {
+      id: string;
+      nome: string;
+    };
+  }>;
+}
+
+export interface SitioFuncional {
+    id: string;
+    nome: string;
+    descricao?: string;
+}
+export interface CreateSitioFuncionalDTO {
+    unidadeId: string;
+    nome: string;
+    descricao?: string;
+}
+
+
+export interface CreateParametrosDTO {
+    nome_enfermeiro?: string;
+    numero_coren?: string;
+    aplicarIST?: boolean;
+    ist?: number;
+    diasSemana?: number;
+}
+export type ParametrosUnidade = CreateParametrosDTO & { id: string };
+export interface Pergunta {
+    id: string;
+    categoria: string;
+    texto: string;
+    tipoResposta: "sim_nao_na" | "texto" | "numero" | "data" | "multipla_escolha";
+    opcoes?: string[];
+    obrigatoria: boolean;
+}
+
+export interface Questionario {
+    id: string;
+    nome: string;
+    perguntas: Pergunta[];
+}
+
+export type CreateQuestionarioDTO = Omit<Questionario, 'id'>;
+export type UpdateQuestionarioDTO = Partial<CreateQuestionarioDTO>;
+
+
+export const getQuestionarios = async (): Promise<Questionario[]> => {
+    // A API retorna um objeto com a chave 'questionarios', então extraímos ela
+    const response = await api.get('/questionarios');
+    return response.data.questionarios;
+};
+
+export const createQuestionario = async (data: CreateQuestionarioDTO): Promise<Questionario> => {
+    const response = await api.post('/questionarios', data);
+    return response.data;
+};
+
+export const updateQuestionario = async (id: string, data: UpdateQuestionarioDTO): Promise<Questionario> => {
+    const response = await api.put(`/questionarios/${id}`, data);
+    return response.data;
+};
+
+export const deleteQuestionario = async (id: string): Promise<void> => {
+    await api.delete(`/questionarios/${id}`);
+};
+// --- FUNÇÕES DA API ---
+
+// (Funções de Admin Global, Hospital, Setores, etc. permanecem aqui...)
+export const getHospitais = async (): Promise<Hospital[]> => {
+  const response = await api.get('/hospitais');
+  return response.data;
+};
+export const getHospitalById = async (id: string): Promise<Hospital> => {
+  const response = await api.get(`/hospitais/${id}`);
+  return response.data;
+};
+export const createHospital = async (data: CreateHospitalDTO): Promise<Hospital> => {
+  const response = await api.post('/hospitais', data);
+  return response.data;
+};
+export const updateHospital = async (hospitalId: string, data: UpdateHospitalDTO): Promise<Hospital> => {
+  const response = await api.put(`/hospitais/${hospitalId}`, data);
+  return response.data;
+};
+export const deleteHospital = async (hospitalId: string): Promise<void> => {
+  await api.delete(`/hospitais/${hospitalId}`);
+};
+export const getRedes = async (): Promise<Rede[]> => {
+    const response = await api.get('/redes');
+    return response.data;
+};
+export const createRede = async (nome: string): Promise<Rede> => {
+    const response = await api.post('/redes', { nome });
+    return response.data;
+};
+export const updateRede = async (redeId: string, nome: string): Promise<Rede> => {
+    const response = await api.put(`/redes/${redeId}`, { nome });
+    return response.data;
+};
+export const deleteRede = async (redeId: string): Promise<void> => {
+    await api.delete(`/redes/${redeId}`);
+};
+export const getGrupos = async (): Promise<Grupo[]> => {
+    const response = await api.get('/grupos');
+    return response.data;
+};
+export const createGrupo = async (data: CreateGrupoDTO): Promise<Grupo> => {
+    const response = await api.post('/grupos', data);
+    return response.data;
+};
+export const updateGrupo = async (grupoId: string, data: Partial<CreateGrupoDTO>): Promise<Grupo> => {
+    const response = await api.put(`/grupos/${grupoId}`, data);
+    return response.data;
+};
+export const deleteGrupo = async (grupoId: string): Promise<void> => {
+    await api.delete(`/grupos/${grupoId}`);
+};
+export const getRegioes = async (): Promise<Regiao[]> => {
+    const response = await api.get('/regioes');
+    return response.data;
+};
+export const createRegiao = async (data: CreateRegiaoDTO): Promise<Regiao> => {
+    const response = await api.post('/regioes', data);
+    return response.data;
+};
+export const updateRegiao = async (regiaoId: string, data: UpdateRegiaoDTO): Promise<Regiao> => {
+    const response = await api.put(`/regioes/${regiaoId}`, data);
+    return response.data;
+};
+export const deleteRegiao = async (regiaoId: string): Promise<void> => {
+    await api.delete(`/regioes/${regiaoId}`);
+};
+export const getUnidadesInternacao = async (hospitalId: string): Promise<UnidadeInternacao[]> => {
+  const response = await api.get(`/unidades`, { params: { hospitalId } });
+  return response.data.map((u: any) => ({ ...u, tipo: 'internacao', hospitalId }));
+};
+export const getUnidadesNaoInternacao = async (hospitalId: string): Promise<UnidadeNaoInternacao[]> => {
+  const response = await api.get(`/unidades-nao-internacao/hospital/${hospitalId}`);
+  return response.data.data.map((u: any) => ({ ...u, tipo: 'nao-internacao', hospitalId }));
+};
+export const createUnidadeInternacao = async (data: CreateUnidadeInternacaoDTO): Promise<UnidadeInternacao> => {
+  const response = await api.post('/unidades', data);
+  return response.data;
+};
+export const createUnidadeNaoInternacao = async (data: CreateUnidadeNaoInternacaoDTO): Promise<UnidadeNaoInternacao> => {
+    const response = await api.post('/unidades-nao-internacao', data);
+    return response.data;
+};
+export const deleteUnidadeInternacao = async (setorId: string): Promise<void> => {
+  await api.delete(`/unidades/${setorId}`);
+};
+export const deleteUnidadeNaoInternacao = async (setorId: string): Promise<void> => {
+  await api.delete(`/unidades-nao-internacao/${setorId}`);
+};
+export const getScpMetodos = async (): Promise<ScpMetodo[]> => {
+    const response = await api.get('/scp-metodos');
+    return response.data;
+}
+export const createScpMetodo = async (data: CreateScpMetodoDTO): Promise<ScpMetodo> => {
+    const response = await api.post('/scp-metodos', data);
+    return response.data;
+};
+export const updateScpMetodo = async (id: string, data: CreateScpMetodoDTO): Promise<ScpMetodo> => {
+    const response = await api.put(`/scp-metodos/${id}`, data);
+    return response.data;
+};
+export const deleteScpMetodo = async (id: string): Promise<void> => {
+    await api.delete(`/scp-metodos/${id}`);
+};
+export const getUsuariosByHospitalId = async (hospitalId: string): Promise<Usuario[]> => {
+  const response = await api.get('/colaboradores', { params: { hospitalId } });
+  return response.data;
+};
+export const createUsuario = async (data: CreateUsuarioDTO): Promise<Usuario> => {
+  const response = await api.post('/colaboradores', data);
+  return response.data;
+};
+export const updateUsuario = async (usuarioId: string, data: UpdateUsuarioDTO): Promise<Usuario> => {
+  const response = await api.patch(`/colaboradores/${usuarioId}`, data);
+  return response.data;
+};
+export const deleteUsuario = async (usuarioId: string): Promise<void> => {
+  await api.delete(`/colaboradores/${usuarioId}`);
+};
+export const getCargosByHospitalId = async (hospitalId: string): Promise<Cargo[]> => {
+  const { data } = await api.get(`/hospitais/${hospitalId}/cargos`);
+  return data;
+};
+export const createCargo = async (data: CreateCargoDTO): Promise<Cargo> => {
+  const response = await api.post(`/hospitais/${data.hospitalId}/cargos`, data);
+  return response.data;
+};
+export const updateCargo = async (hospitalId: string, cargoId: string, data: UpdateCargoDTO): Promise<Cargo> => {
+  const response = await api.patch(`/hospitais/${hospitalId}/cargos/${cargoId}`, data);
+  return response.data;
+};
+export const deleteCargo = async (hospitalId: string, cargoId: string): Promise<void> => {
+  await api.delete(`/hospitais/${hospitalId}/cargos/${cargoId}`);
+};
+export const getBaselinesByHospitalId = async (hospitalId: string): Promise<Baseline[]> => {
+    const response = await api.get('/baselines');
+    const allBaselines = response.data as (Baseline & { hospital: Hospital })[];
+    return allBaselines.filter(b => b.hospital?.id === hospitalId);
+};
+export const createBaseline = async (data: CreateBaselineDTO): Promise<Baseline> => {
+    const response = await api.post('/baselines', data);
+    return response.data;
+};
+export const updateBaseline = async (baselineId: string, data: UpdateBaselineDTO): Promise<Baseline> => {
+    // Rota PATCH para atualização parcial pode ser implementada se necessário
+    const response = await api.put(`/baselines/${baselineId}`, data);
+    return response.data;
+};
+export const deleteBaseline = async (baselineId: string): Promise<void> => {
+  await api.delete(`/baselines/${baselineId}`);
+};
+
+// COLABORADOR
+export const getUnidadeById = async (unidadeId: string): Promise<UnidadeInternacao | UnidadeNaoInternacao> => {
+    try {
+        const response = await api.get(`/unidades/${unidadeId}`);
+        return { ...response.data, tipo: 'internacao' };
+    } catch (error) {
+        const response = await api.get(`/unidades-nao-internacao/${unidadeId}`);
+        return { ...response.data, tipo: 'nao-internacao' };
+    }
+};
+export const getSessoesAtivasByUnidadeId = async (unidadeId: string): Promise<SessaoAtiva[]> => {
+    const response = await api.get('/avaliacoes/sessoes-ativas', { params: { unidadeId } });
+    return response.data;
+};
+export const admitirPaciente = async (data: AdmitirPacienteDTO): Promise<SessaoAtiva> => {
+    const payload = { ...data, itens: {} };
+    const response = await api.post('/avaliacoes/sessao', payload);
+    return response.data;
+};
+export const getScpSchema = async (scpKey: string): Promise<ScpSchema> => {
+    const response = await api.get('/avaliacoes/schema', { params: { scp: scpKey } });
+    return response.data;
+};
+export const updateSessao = async (sessaoId: string, data: UpdateSessaoDTO): Promise<SessaoAtiva> => {
+    const response = await api.put(`/avaliacoes/sessao/${sessaoId}`, data);
+    return response.data;
+};
+export const liberarSessao = async (sessaoId: string): Promise<void> => {
+    await api.post(`/avaliacoes/sessao/${sessaoId}/liberar`);
+};
+export const changePassword = async (colaboradorId: string, novaSenha: string): Promise<void> => {
+    await api.patch(`/colaboradores/${colaboradorId}/senha`, { senha: novaSenha });
+};
+export const getDimensionamentosPorUnidade = async (unidadeId: string): Promise<Dimensionamento[]> => {
+    const response = await api.get(`/unidades/${unidadeId}/dimensionamento`);
+    return response.data;
+};
+export const createDimensionamento = async (unidadeId: string, data: CreateDimensionamentoDTO): Promise<Dimensionamento> => {
+    const response = await api.post(`/unidades/${unidadeId}/dimensionamento`, data);
+    return response.data;
+};
+export const getHospitalStats = async (hospitalId: string): Promise<HospitalStats> => {
+    const response = await api.get(`/estatisticas/hospital/${hospitalId}/json`);
+    return response.data;
+};
+
+// LEITOS (Admin)
+export const getLeitosByUnidade = async (unidadeId: string): Promise<Leito[]> => {
+    const response = await api.get('/leitos', { params: { unidadeId } });
+    return response.data;
+};
+export const createLeito = async (data: CreateLeitoDTO): Promise<Leito> => {
+    const response = await api.post('/leitos', data);
+    return response.data;
+}
+export const updateLeito = async (leitoId: string, data: Partial<UpdateLeitoDTO>): Promise<Leito> => {
+    const response = await api.patch(`/leitos/${leitoId}`, data);
+    return response.data;
+}
+export const deleteLeito = async (leitoId: string): Promise<void> => {
+    await api.delete(`/leitos/${leitoId}`);
+}
+
+// PARAMETROS (Admin)
+export const getParametros = async (unidadeId: string): Promise<ParametrosUnidade> => {
+    const response = await api.get(`/parametros/unidade/${unidadeId}`);
+    return response.data;
+};
+export const saveParametros = async (unidadeId: string, data: CreateParametrosDTO): Promise<ParametrosUnidade> => {
+    const response = await api.post(`/parametros/unidade/${unidadeId}`, data);
+    return response.data;
+};
+
+// SITIOS FUNCIONAIS (Admin)
+export const createSitioFuncional = async (unidadeId: string, data: CreateSitioFuncionalDTO): Promise<SitioFuncional> => {
+    const response = await api.post(`/unidades-nao-internacao/${unidadeId}/sitios`, data);
+    return response.data;
+}
+
+
+export default api;
