@@ -172,7 +172,7 @@ export default function UsuariosPage() {
                 onChange={handleChange}
                 className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
               >
-                <option value="COMUM">Colaborador</option>
+                <option value="COMUM">Comum</option>
                 <option value="GESTOR">Gestor</option>
               </select>
             </div>
