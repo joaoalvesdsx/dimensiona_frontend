@@ -16,7 +16,7 @@ const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
   nome: "",
   email: "",
   cpf: "",
-  permissao: "comum",
+  permissao: "COMUM",
 };
 
 export default function UsuariosPage() {
@@ -91,7 +91,7 @@ export default function UsuariosPage() {
           nome: formData.nome || "",
           email: formData.email || "",
           cpf: formData.cpf || "",
-          permissao: formData.permissao || "comum",
+          permissao: formData.permissao || "COMUM",
           senha: cpfNumeros, // Define o CPF (apenas números) como a palavra-passe
         };
         await createUsuario(createData);
@@ -168,13 +168,12 @@ export default function UsuariosPage() {
               />
               <select
                 name="permissao"
-                value={formData.permissao || "comum"}
+                value={formData.permissao || "COMUM"}
                 onChange={handleChange}
                 className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
               >
-                <option value="comum">Colaborador</option>
-                <option value="gestor">Gestor</option>
-                <option value="admin">Admin (de Hospital)</option>
+                <option value="COMUM">Colaborador</option>
+                <option value="GESTOR">Gestor</option>
               </select>
             </div>
             <div className="flex justify-end mt-4">
