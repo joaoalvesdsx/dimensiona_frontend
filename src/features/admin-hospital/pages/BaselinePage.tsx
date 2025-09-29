@@ -41,11 +41,15 @@ export default function BaselinePage() {
     setError(null);
     try {
       const hospitalData = await getHospitalById(hospitalId);
+      const baselineData = await getBaselinesByHospitalId(hospitalId);
+      console.log("Dados do hospital:", hospitalData);
+      console.log("Dados do baseline:", baselineData);
       setHospital(hospitalData);
+
       // O baseline já vem dentro do objeto hospital
-      if (hospitalData.baseline) {
-        setBaseline(hospitalData.baseline);
-        setFormData(hospitalData.baseline);
+      if (baselineData) {
+        setBaseline(baselineData);
+        setFormData(baselineData);
       } else {
         setBaseline(null);
         setFormData(initialFormState);
