@@ -1,14 +1,22 @@
-import { useState, useEffect, FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
-import { getUsuariosByHospitalId, createUsuario, updateUsuario, deleteUsuario, Usuario, CreateUsuarioDTO, UpdateUsuarioDTO } from '@/lib/api';
-import { Trash2, Edit } from 'lucide-react';
+import { useState, useEffect, FormEvent } from "react";
+import { useParams } from "react-router-dom";
+import {
+  getUsuariosByHospitalId,
+  createUsuario,
+  updateUsuario,
+  deleteUsuario,
+  Usuario,
+  CreateUsuarioDTO,
+  UpdateUsuarioDTO,
+} from "../../../lib/api";
+import { Trash2, Edit } from "lucide-react";
 
 // O DTO para criação inclui a senha inicial
-const initialFormState: Omit<CreateUsuarioDTO, 'hospitalId' | 'senha'> = {
-  nome: '',
-  email: '',
-  cpf: '',
-  permissao: 'comum',
+const initialFormState: Omit<CreateUsuarioDTO, "hospitalId" | "senha"> = {
+  nome: "",
+  email: "",
+  cpf: "",
+  permissao: "COMUM",
 };
 
 export default function UsuariosPage() {
@@ -28,7 +36,7 @@ export default function UsuariosPage() {
       const data = await getUsuariosByHospitalId(hospitalId);
       setUsuarios(data);
     } catch (err) {
-      setError('Falha ao carregar os usuários.');
+      setError("Falha ao carregar os usuários.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -54,9 +62,11 @@ export default function UsuariosPage() {
     setFormData(initialFormState);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -75,32 +85,35 @@ export default function UsuariosPage() {
         await updateUsuario(formData.id, updateData);
       } else {
         // Enviamos o CPF como a palavra-passe inicial
-        const cpfNumeros = formData.cpf?.replace(/\D/g, '') || ''; // Remove formatação do CPF
+        const cpfNumeros = formData.cpf?.replace(/\D/g, "") || ""; // Remove formatação do CPF
         const createData: CreateUsuarioDTO = {
           hospitalId,
-          nome: formData.nome || '',
-          email: formData.email || '',
-          cpf: formData.cpf || '',
-          permissao: formData.permissao || 'comum',
-          senha: cpfNumeros, // Define o CPF (apenas números) como a palavra-passe
+          nome: formData.nome || "",
+          email: formData.email || "",
+          cpf: formData.cpf || "",
+          permissao: formData.permissao || "COMUM",
         };
         await createUsuario(createData);
       }
       handleCancel();
       fetchUsuarios();
     } catch (err) {
-      setError(formData.id ? 'Falha ao atualizar o utilizador.' : 'Falha ao criar o utilizador.');
+      setError(
+        formData.id
+          ? "Falha ao atualizar o utilizador."
+          : "Falha ao criar o utilizador."
+      );
       console.error(err);
     }
   };
 
   const handleDelete = async (usuarioId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
+    if (window.confirm("Tem certeza que deseja excluir este usuário?")) {
       try {
         await deleteUsuario(usuarioId);
         fetchUsuarios();
       } catch (err) {
-        setError('Falha ao excluir o usuário.');
+        setError("Falha ao excluir o usuário.");
         console.error(err);
       }
     }
@@ -109,31 +122,64 @@ export default function UsuariosPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">Gerenciamento de Usuários</h1>
+        <h1 className="text-3xl font-bold text-primary">
+          Gerenciamento de Usuários
+        </h1>
         <button
           onClick={isFormVisible ? handleCancel : handleAddNew}
           className="px-4 py-2 text-white bg-secondary rounded-md hover:opacity-90 transition-opacity"
         >
-          {isFormVisible ? 'Cancelar' : '+ Novo Usuário'}
+          {isFormVisible ? "Cancelar" : "+ Novo Usuário"}
         </button>
       </div>
 
       {isFormVisible && (
         <div className="bg-white p-6 rounded-lg border animate-fade-in-down">
           <form onSubmit={handleSubmit}>
-            <h2 className="text-xl font-semibold mb-4 text-primary">{formData.id ? 'Editar Usuário' : 'Adicionar Novo Usuário'}</h2>
+            <h2 className="text-xl font-semibold mb-4 text-primary">
+              {formData.id ? "Editar Usuário" : "Adicionar Novo Usuário"}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input name="nome" value={formData.nome || ''} onChange={handleChange} placeholder="Nome Completo" required className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"/>
-              <input name="email" type="email" value={formData.email || ''} onChange={handleChange} placeholder="Email" required className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"/>
-              <input name="cpf" value={formData.cpf || ''} onChange={handleChange} placeholder="CPF" required className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"/>
-              <select name="permissao" value={formData.permissao || 'comum'} onChange={handleChange} className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary">
-                <option value="comum">Colaborador</option>
-                <option value="gestor">Gestor</option>
-                <option value="admin">Admin (de Hospital)</option>
+              <input
+                name="nome"
+                value={formData.nome || ""}
+                onChange={handleChange}
+                placeholder="Nome Completo"
+                required
+                className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+              />
+              <input
+                name="email"
+                type="email"
+                value={formData.email || ""}
+                onChange={handleChange}
+                placeholder="Email"
+                required
+                className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+              />
+              <input
+                name="cpf"
+                value={formData.cpf || ""}
+                onChange={handleChange}
+                placeholder="CPF"
+                required
+                className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+              />
+              <select
+                name="permissao"
+                value={formData.permissao || "COMUM"}
+                onChange={handleChange}
+                className="p-2 border rounded-md focus:ring-1 focus:ring-secondary focus:border-secondary"
+              >
+                <option value="COMUM">Comum</option>
+                <option value="GESTOR">Gestor</option>
               </select>
             </div>
             <div className="flex justify-end mt-4">
-              <button type="submit" className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700">
+              <button
+                type="submit"
+                className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700"
+              >
                 Salvar
               </button>
             </div>
@@ -149,24 +195,44 @@ export default function UsuariosPage() {
             <table className="min-w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permissão</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Nome
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Permissão
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {usuarios.length > 0 ? (
                   usuarios.map((usuario) => (
                     <tr key={usuario.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{usuario.nome}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{usuario.email}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 capitalize">{usuario.permissao}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                        {usuario.nome}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {usuario.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 capitalize">
+                        {usuario.permissao}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                        <button onClick={() => handleEdit(usuario)} className="text-secondary hover:opacity-70">
+                        <button
+                          onClick={() => handleEdit(usuario)}
+                          className="text-secondary hover:opacity-70"
+                        >
                           <Edit size={20} />
                         </button>
-                        <button onClick={() => handleDelete(usuario.id)} className="text-red-600 hover:opacity-70">
+                        <button
+                          onClick={() => handleDelete(usuario.id)}
+                          className="text-red-600 hover:opacity-70"
+                        >
                           <Trash2 size={20} />
                         </button>
                       </td>
@@ -174,7 +240,10 @@ export default function UsuariosPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                    <td
+                      colSpan={4}
+                      className="px-6 py-4 text-center text-sm text-gray-500"
+                    >
                       Nenhum utilizador registado.
                     </td>
                   </tr>
