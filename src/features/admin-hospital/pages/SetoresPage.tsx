@@ -121,6 +121,7 @@ export default function SetoresPage() {
     resetForm();
 
     setEditingUnidade(unidade);
+    console.log("Unidade :", unidade);
     setTipoUnidade(unidade.tipo);
     setNome(unidade.nome);
     setHorasExtraReais(unidade.horas_extra_reais || "");
@@ -149,6 +150,7 @@ export default function SetoresPage() {
   };
 
   const handleAddCargo = () => {
+    console.log("ANTES DE ADICIONAR. Estado atual:", cargos_unidade);
     if (!selectedCargoId || quantidadeFuncionarios <= 0) {
       alert("Selecione um cargo e informe uma quantidade válida.");
       return;
@@ -183,10 +185,11 @@ export default function SetoresPage() {
 
     try {
       const isEditing = !!editingUnidade;
+      // Prepara o payload dos cargos, removendo a propriedade 'nome' que é só para o frontend
       const payloadCargos = cargos_unidade.map(({ nome, ...resto }) => resto);
-
+      console.log("Payload Cargos:", payloadCargos);
       if (isEditing) {
-        // --- LÓGICA DE ATUALIZAÇÃO (em uma única etapa) ---
+        // LÓGICA DE ATUALIZAÇÃO (já estava correta)
         if (tipoUnidade === "internacao") {
           await updateUnidadeInternacao(editingUnidade!.id, {
             nome,
@@ -205,41 +208,28 @@ export default function SetoresPage() {
           });
         }
       } else {
-        // --- LÓGICA DE CRIAÇÃO (em duas etapas) ---
-        let novaUnidade;
-        // 1. Criar a unidade SEM os cargos
+        // [CORRIGIDO] LÓGICA DE CRIAÇÃO (agora em uma única etapa)
         if (tipoUnidade === "internacao") {
-          novaUnidade = await createUnidadeInternacao({
+          await createUnidadeInternacao({
             hospitalId,
             nome,
             numeroLeitos,
             scpMetodoId,
             horas_extra_reais,
             horas_extra_projetadas,
-            cargos_unidade: [],
+            // Envia o payload de cargos diretamente na criação
+            cargos_unidade: payloadCargos,
           });
         } else {
-          novaUnidade = await createUnidadeNaoInternacao({
+          await createUnidadeNaoInternacao({
             hospitalId,
             nome,
             descricao,
             horas_extra_reais,
             horas_extra_projetadas,
-            cargos_unidade: [],
+            // Envia o payload de cargos diretamente na criação
+            cargos_unidade: payloadCargos,
           });
-        }
-
-        // 2. Se houver cargos, ATUALIZAR a unidade recém-criada com eles
-        if (payloadCargos.length > 0) {
-          if (tipoUnidade === "internacao") {
-            await updateUnidadeInternacao(novaUnidade.id, {
-              cargos_unidade: payloadCargos,
-            });
-          } else {
-            await updateUnidadeNaoInternacao(novaUnidade.id, {
-              cargos_unidade: payloadCargos,
-            });
-          }
         }
       }
 
