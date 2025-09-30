@@ -764,6 +764,15 @@ export const getQuestionarios = async (): Promise<Questionario[]> => {
   const response = await api.get("/questionarios");
   return response.data.questionarios;
 };
+
+export const getQuestionarioById = async (
+  questionarioId: string
+): Promise<Questionario> => {
+  const response = await api.get(`/questionarios/${questionarioId}`);
+  return response.data;
+}
+  
+
 export const createQuestionario = async (
   data: CreateQuestionarioDTO
 ): Promise<Questionario> => {
