@@ -13,14 +13,14 @@ import {
   LayoutDashboard,
   Bed,
   FileText,
+  ListChecks, // ✅ ÍCONE IMPORTADO
+  Shield,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getHospitais, Hospital } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { /*...,*/ ListChecks } from "lucide-react";
-import { /*...,*/ Shield } from "lucide-react";
 
-// ... (Componente NavItem permanece o mesmo)
+// Componente NavItem (sem alterações)
 const NavItem = ({
   to,
   icon,
@@ -47,6 +47,7 @@ const NavItem = ({
   </li>
 );
 
+// Componente HospitalSubMenu (sem alterações)
 const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
   const { hospitalId: activeHospitalId } = useParams();
   const [isExpanded, setIsExpanded] = useState(
@@ -60,36 +61,12 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
   }, [activeHospitalId, hospital.id]);
 
   const subItems = [
-    {
-      to: `/hospital/${hospital.id}/dashboard`,
-      icon: <LayoutDashboard size={16} />,
-      label: "Dashboard",
-    },
-    {
-      to: `/hospital/${hospital.id}/unidades-leitos`,
-      icon: <Bed size={16} />,
-      label: "Unidades e Leitos",
-    },
-    {
-      to: `/hospital/${hospital.id}/setores`,
-      icon: <Building size={16} />,
-      label: "Gerir Setores",
-    },
-    {
-      to: `/hospital/${hospital.id}/usuarios`,
-      icon: <Users size={16} />,
-      label: "Usuários",
-    },
-    {
-      to: `/hospital/${hospital.id}/cargos`,
-      icon: <Briefcase size={16} />,
-      label: "Cargos",
-    },
-    {
-      to: `/hospital/${hospital.id}/baseline`,
-      icon: <ClipboardList size={16} />,
-      label: "Baseline",
-    },
+    { to: `/hospital/${hospital.id}/dashboard`, icon: <LayoutDashboard size={16} />, label: "Dashboard" },
+    { to: `/hospital/${hospital.id}/unidades-leitos`, icon: <Bed size={16} />, label: "Unidades e Leitos" },
+    { to: `/hospital/${hospital.id}/setores`, icon: <Building size={16} />, label: "Gerir Setores" },
+    { to: `/hospital/${hospital.id}/usuarios`, icon: <Users size={16} />, label: "Usuários" },
+    { to: `/hospital/${hospital.id}/cargos`, icon: <Briefcase size={16} />, label: "Cargos" },
+    { to: `/hospital/${hospital.id}/baseline`, icon: <ClipboardList size={16} />, label: "Baseline" },
   ];
 
   return (
@@ -115,46 +92,28 @@ const HospitalSubMenu = ({ hospital }: { hospital: Hospital }) => {
   );
 };
 
+// Componente Principal do Sidebar (com a alteração)
 export default function Sidebar() {
   const { user } = useAuth();
   const [hospitais, setHospitais] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
 
   const adminGlobalItems = [
-    {
-      to: `/admin/hospitais`,
-      icon: <HospitalIcon size={18} />,
-      label: "Gerir Hospitais",
-    },
+    { to: `/admin/hospitais`, icon: <HospitalIcon size={18} />, label: "Gerir Hospitais" },
     { to: `/admin/redes`, icon: <Waypoints size={18} />, label: "Redes" },
     { to: `/admin/grupos`, icon: <Group size={18} />, label: "Grupos" },
     { to: `/admin/regioes`, icon: <Globe size={18} />, label: "Regiões" },
-    {
-      to: `/admin/scp-metodos`,
-      icon: <FileText size={18} />,
-      label: "Métodos SCP",
-    },
-    {
-      to: `/admin/questionarios`,
-      icon: <ListChecks size={18} />,
-      label: "Questionários",
-    },
-    {
-      to: `/admin/admins`,
-      icon: <Shield size={18} />,
-      label: "Administradores",
-    },
+    { to: `/admin/scp-metodos`, icon: <FileText size={18} />, label: "Métodos SCP" },
+    { to: `/admin/questionarios`, icon: <ListChecks size={18} />, label: "Questionários" },
+    { to: `/admin/admins`, icon: <Shield size={18} />, label: "Administradores" },
   ];
 
   useEffect(() => {
-    // A lógica agora verifica 'appRole' que foi unificado no AuthContext
     if (user?.appRole === "ADMIN") {
       setLoading(true);
       getHospitais()
         .then(setHospitais)
-        .catch((err) =>
-          console.error("Falha ao carregar hospitais para o menu:", err)
-        )
+        .catch((err) => console.error("Falha ao carregar hospitais para o menu:", err))
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -170,36 +129,35 @@ export default function Sidebar() {
       <nav className="flex-1 px-4 py-6 overflow-y-auto">
         {user?.appRole === "ADMIN" && (
           <>
-            <h2 className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
-              Admin Global
-            </h2>
+            <h2 className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Admin Global</h2>
             <ul>
               {adminGlobalItems.map((item) => (
                 <NavItem key={item.to} {...item} />
               ))}
             </ul>
             <hr className="my-6 border-white/20" />
-            <h2 className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
-              Gerir Hospitais
-            </h2>
+            <h2 className="px-3 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Gerir Hospitais</h2>
             <ul>
-              {loading && (
-                <li className="px-3 text-sm text-gray-400">A carregar...</li>
-              )}
-              {!loading &&
-                hospitais.map((hospital) => (
+              {loading && <li className="px-3 text-sm text-gray-400">A carregar...</li>}
+              {!loading && hospitais.map((hospital) => (
                   <HospitalSubMenu key={hospital.id} hospital={hospital} />
-                ))}
+              ))}
             </ul>
           </>
         )}
 
+        {/* ✅ BLOCO ATUALIZADO ABAIXO */}
         {(user?.appRole === "GESTOR" || user?.appRole === "COMUM") && (
           <ul>
             <NavItem
               to="/meu-hospital"
               icon={<HospitalIcon size={18} />}
               label="Minhas Unidades"
+            />
+            <NavItem
+              to="/coletas"
+              icon={<ListChecks size={18} />}
+              label="Coleta de Dados"
             />
           </ul>
         )}
