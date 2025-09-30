@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Token decodificado", decoded);
         // Unifica o papel do usuário em uma única propriedade 'appRole'
         let finalRole: UserPayload["appRole"] = "COMUM";
-        if (decoded.tipo === "ADMIN") {
+        if (decoded.role === "ADMIN") {
           finalRole = "ADMIN";
         } else if (decoded.role === "GESTOR") {
           finalRole = "GESTOR"; // Tratando admin de hospital como gestor
@@ -78,6 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, pass: string) => {
     try {
       const response = await api.post("/login", { email: email, senha: pass });
+      console.log(response);
       const { token: newToken } = response.data;
 
       if (newToken) {
@@ -86,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (decoded.mustChangePassword) {
           navigate("/change-password");
-        } else if (decoded.tipo === "ADMIN") {
+        } else if (decoded.role === "ADMIN") {
           navigate("/admin/hospitais");
         } else {
           navigate("/meu-hospital");
