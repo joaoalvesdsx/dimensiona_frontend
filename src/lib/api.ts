@@ -57,6 +57,7 @@ export interface UnidadeNaoInternacao {
   nome: string;
   tipo: "nao-internacao";
   sitiosFuncionais: SitioFuncional[];
+  descricao?: string;
   hospitalId: string;
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
@@ -66,9 +67,8 @@ export type Unidade = UnidadeInternacao | UnidadeNaoInternacao;
 
 export type CargoUnidade = {
   cargoId: string;
-  
+
   quantidade_funcionarios: number;
-  
 };
 
 export type CreateUnidadeInternacaoDTO = {
@@ -89,14 +89,9 @@ export type CreateUnidadeNaoInternacaoDTO = {
   cargos_unidade: CargoUnidade[];
 };
 
-
 export type UpdateUnidadeInternacaoDTO = Partial<CreateUnidadeInternacaoDTO>;
 export type UpdateUnidadeNaoInternacaoDTO =
   Partial<CreateUnidadeNaoInternacaoDTO>;
-
-
-
-
 
 export interface Usuario {
   id: string;
@@ -482,8 +477,6 @@ export const updateUnidadeNaoInternacao = async (
   const response = await api.put(`/unidades-nao-internacao/${setorId}`, data);
   return response.data;
 };
-
-
 
 export const deleteUnidadeInternacao = async (
   setorId: string
