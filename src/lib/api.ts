@@ -70,6 +70,9 @@ export type CreateUnidadeNaoInternacaoDTO = {
   descricao?: string;
 };
 
+export type UpdateUnidadeInternacaoDTO = Partial<CreateUnidadeInternacaoDTO>;
+export type UpdateUnidadeNaoInternacaoDTO =
+  Partial<CreateUnidadeNaoInternacaoDTO>;
 export interface Usuario {
   id: string;
   nome: string;
@@ -304,24 +307,22 @@ export interface CargoSitio {
 // --- FUNÇÕES DA API ---
 
 // ADMIN GLOBAL
+
 export const getAdmins = async (): Promise<Admin[]> => {
-  // A rota /admin/listar não existe no backend, simulando uma lista vazia.
-  console.warn(
-    "API para listar admins não encontrada no backend. Retornando array vazio."
-  );
-  return Promise.resolve([]);
-};
-export const createAdmin = async (data: any): Promise<Admin> => {
-  const response = await api.post("/admin/criar", data);
+  const response = await api.get("/colaboradores/admin");
   return response.data;
 };
-export const deleteAdmin = async (id: string): Promise<void> => {
-  // Rota também ausente no backend, precisa ser criada.
-  console.warn(`API para deletar admin ${id} não encontrada no backend.`);
-  return Promise.resolve();
+export const createAdmin = async (data: any): Promise<Admin> => {
+  const response = await api.post("/colaboradores/admin", data);
+  return response.data;
+};
+export const deleteAdmin = async (id: string): Promise<boolean> => {
+  const response = await api.delete(`/colaboradores/admin/${id}`);
+  return response.data;
 };
 
 // HOSPITAIS
+
 export const getHospitais = async (): Promise<Hospital[]> => {
   const response = await api.get("/hospitais");
   return response.data;
@@ -348,6 +349,7 @@ export const deleteHospital = async (hospitalId: string): Promise<void> => {
 };
 
 // REDES, GRUPOS, REGIOES
+
 export const getRedes = async (): Promise<Rede[]> => {
   const response = await api.get("/redes");
   return response.data;
@@ -404,6 +406,7 @@ export const deleteRegiao = async (regiaoId: string): Promise<void> => {
 };
 
 // UNIDADES (SETORES)
+
 export const getUnidadesInternacao = async (
   hospitalId: string
 ): Promise<UnidadeInternacao[]> => {
@@ -450,6 +453,7 @@ export const deleteUnidadeNaoInternacao = async (
 };
 
 // MÉTODOS SCP
+
 export const getScpMetodos = async (): Promise<ScpMetodo[]> => {
   const response = await api.get("/scp-metodos");
   return response.data;
@@ -472,6 +476,7 @@ export const deleteScpMetodo = async (id: string): Promise<void> => {
 };
 
 // USUÁRIOS (COLABORADORES)
+
 export const getUsuariosByHospitalId = async (
   hospitalId: string
 ): Promise<Usuario[]> => {
@@ -496,6 +501,7 @@ export const deleteUsuario = async (usuarioId: string): Promise<void> => {
 };
 
 // CARGOS
+
 export const getCargosByHospitalId = async (
   hospitalId: string
 ): Promise<Cargo[]> => {
@@ -525,6 +531,7 @@ export const deleteCargo = async (
 };
 
 // BASELINE
+
 export const getBaselinesByHospitalId = async (
   hospitalId: string
 ): Promise<Baseline> => {
@@ -550,6 +557,7 @@ export const deleteBaseline = async (baselineId: string): Promise<void> => {
 };
 
 // FLUXO DE AVALIAÇÃO E SESSÕES
+
 export const getUnidadeById = async (
   unidadeId: string
 ): Promise<UnidadeInternacao | UnidadeNaoInternacao> => {
@@ -602,6 +610,7 @@ export const changePassword = async (
 };
 
 // DIMENSIONAMENTO
+
 export const getDimensionamentosPorUnidade = async (
   unidadeId: string
 ): Promise<Dimensionamento[]> => {
@@ -620,6 +629,7 @@ export const createDimensionamento = async (
 };
 
 // ESTATÍSTICAS E RELATÓRIOS
+
 export const getHospitalStats = async (
   hospitalId: string
 ): Promise<HospitalStats> => {
@@ -628,6 +638,7 @@ export const getHospitalStats = async (
 };
 
 // LEITOS (Admin)
+
 export const getLeitosByUnidade = async (
   unidadeId: string
 ): Promise<Leito[]> => {
@@ -650,6 +661,7 @@ export const deleteLeito = async (leitoId: string): Promise<void> => {
 };
 
 // PARAMETROS (Admin)
+
 export const getParametros = async (
   unidadeId: string
 ): Promise<ParametrosUnidade> => {
@@ -665,6 +677,7 @@ export const saveParametros = async (
 };
 
 // SÍTIOS FUNCIONAIS (Admin)
+
 export const createSitioFuncional = async (
   unidadeId: string,
   data: CreateSitioFuncionalDTO
@@ -687,6 +700,7 @@ export const deleteSitioFuncional = async (sitioId: string): Promise<void> => {
 };
 
 // GESTÃO DE CARGOS EM SÍTIOS
+
 export const getCargosPorSitio = async (
   sitioId: string
 ): Promise<CargoSitio[]> => {
@@ -710,6 +724,7 @@ export const deleteCargoDeSitio = async (
 };
 
 // QUESTIONÁRIOS E COLETAS
+
 export const getQuestionarios = async (): Promise<Questionario[]> => {
   const response = await api.get("/questionarios");
   return response.data.questionarios;
