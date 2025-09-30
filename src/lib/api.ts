@@ -67,7 +67,6 @@ export type Unidade = UnidadeInternacao | UnidadeNaoInternacao;
 
 export type CargoUnidade = {
   cargoId: string;
-
   quantidade_funcionarios: number;
 };
 
@@ -475,6 +474,7 @@ export const updateUnidadeNaoInternacao = async (
   data: UpdateUnidadeNaoInternacaoDTO
 ): Promise<UnidadeNaoInternacao> => {
   const response = await api.put(`/unidades-nao-internacao/${setorId}`, data);
+  console.log("Data :", data);
   return response.data;
 };
 
@@ -595,6 +595,8 @@ export const deleteBaseline = async (baselineId: string): Promise<void> => {
 
 // FLUXO DE AVALIAÇÃO E SESSÕES
 
+// ISSO AQUI É MUITO TROLL ->>>>
+
 export const getUnidadeById = async (
   unidadeId: string
 ): Promise<UnidadeInternacao | UnidadeNaoInternacao> => {
@@ -603,7 +605,12 @@ export const getUnidadeById = async (
     return { ...response.data, tipo: "internacao" };
   } catch (error) {
     const response = await api.get(`/unidades-nao-internacao/${unidadeId}`);
-    return { ...response.data, tipo: "nao-internacao" };
+    const data = response.data;
+    if (data.cargosUnidade) {
+      data.cargos_unidade = data.cargosUnidade;
+      delete data.cargosUnidade;
+    }
+    return { ...data, tipo: "nao-internacao" };
   }
 };
 export const getSessoesAtivasByUnidadeId = async (
