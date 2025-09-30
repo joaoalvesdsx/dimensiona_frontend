@@ -1,92 +1,156 @@
-import { useState, useEffect, FormEvent } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getUnidadeById, getScpSchema, updateSessao, Setor, ScpSchema } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, FormEvent, useMemo } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  getUnidadeById,
+  getScpSchema,
+  updateSessao,
+  UnidadeInternacao,
+  ScpSchema,
+} from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
+// Componente para a Barra de Progresso
+const ProgressBar: React.FC<{ value: number; max: number }> = ({ value, max }) => {
+  const percentage = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div className="w-full bg-muted rounded-full h-2.5">
+      <div
+        className="bg-primary h-2.5 rounded-full transition-all duration-300"
+        style={{ width: `${percentage}%` }}
+      ></div>
+    </div>
+  );
+};
+
+
+// Componente Principal da Página
 export default function AvaliacaoScpPage() {
-    const { unidadeId, sessaoId } = useParams<{ unidadeId: string, sessaoId: string }>();
-    const navigate = useNavigate();
-    const { user } = useAuth();
-    
-    const [unidade, setUnidade] = useState<Setor | null>(null);
-    const [schema, setSchema] = useState<ScpSchema | null>(null);
-    const [respostas, setRespostas] = useState<Record<string, number>>({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const { unidadeId, sessaoId } = useParams<{ unidadeId: string; sessaoId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!unidadeId) return;
-            try {
-                const unidadeData = await getUnidadeById(unidadeId);
-                setUnidade(unidadeData);
-                if (unidadeData.scpMetodoKey) {
-                    const schemaData = await getScpSchema(unidadeData.scpMetodoKey);
-                    setSchema(schemaData);
-                } else {
-                    setError("Esta unidade não possui um método de avaliação configurado.");
-                }
-            } catch (err) {
-                setError("Falha ao carregar dados da avaliação.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [unidadeId]);
+  const [unidade, setUnidade] = useState<UnidadeInternacao | null>(null);
+  const [schema, setSchema] = useState<ScpSchema | null>(null);
+  const [respostas, setRespostas] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    const handleSelectChange = (questionKey: string, value: string) => {
-        setRespostas(prev => ({ ...prev, [questionKey]: Number(value) }));
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!sessaoId || !user?.id || Object.keys(respostas).length !== schema?.questions.length) {
-            setError("Por favor, responda todas as perguntas.");
-            return;
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!unidadeId) return;
+      try {
+        const unidadeData = (await getUnidadeById(unidadeId)) as UnidadeInternacao;
+        setUnidade(unidadeData);
+        if (unidadeData.scpMetodoKey) {
+          const schemaData = await getScpSchema(unidadeData.scpMetodoKey);
+          setSchema(schemaData);
+        } else {
+          setError("Esta unidade não possui um método de avaliação configurado.");
         }
-        try {
-            await updateSessao(sessaoId, { colaboradorId: user.id, itens: respostas });
-            navigate(`/unidade/${unidadeId}/leitos`);
-        } catch (err) {
-            setError("Falha ao salvar avaliação.");
-        }
+      } catch (err) {
+        setError("Falha ao carregar dados da avaliação.");
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchData();
+  }, [unidadeId]);
 
-    if (loading) return <p>A carregar formulário...</p>;
-    if (error) return <p className="text-red-500">{error}</p>;
-    if (!schema) return <p>Formulário de avaliação não encontrado.</p>;
+  const handleOptionSelect = (questionKey: string, value: number) => {
+    setRespostas((prev) => ({ ...prev, [questionKey]: value }));
+  };
+  
+  const totalQuestions = schema?.questions.length || 0;
+  const answeredQuestions = Object.keys(respostas).length;
+  const isFormComplete = answeredQuestions === totalQuestions;
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <Link to={`/unidade/${unidadeId}/leitos`} className="text-sm text-gray-500 hover:underline">&larr; Voltar para Leitos</Link>
-                <h1 className="text-3xl font-bold text-primary">Avaliação {schema.title}</h1>
-                <p className="text-gray-600">Unidade: {unidade?.nome}</p>
-            </div>
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!isFormComplete || !sessaoId || !user?.id) {
+      toast({
+        title: "Atenção",
+        description: "Por favor, responda todas as perguntas para continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      await updateSessao(sessaoId, { colaboradorId: user.id, itens: respostas });
+      toast({ title: "Sucesso!", description: "Avaliação salva com sucesso." });
+      navigate(`/unidade/${unidadeId}/leitos`);
+    } catch (err) {
+      toast({ title: "Erro", description: "Não foi possível salvar a avaliação.", variant: "destructive" });
+    }
+  };
 
-            <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg border space-y-6">
-                {schema.questions.map(q => (
-                    <div key={q.key}>
-                        <label className="block text-md font-medium text-gray-800">{q.text}</label>
-                        <select
-                            onChange={(e) => handleSelectChange(q.key, e.target.value)}
-                            className="mt-2 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                            required
-                        >
-                            <option value="">Selecione uma opção...</option>
-                            {q.options.map(opt => (
-                                <option key={`${q.key}-${opt.value}`} value={opt.value}>{opt.label} ({opt.value} pts)</option>
-                            ))}
-                        </select>
-                    </div>
+  if (loading) return <p className="text-center p-10">Carregando formulário de avaliação...</p>;
+  if (error) return <p className="text-red-500 bg-red-50 p-4 rounded-md">{error}</p>;
+  if (!schema) return <p className="text-center p-10">Formulário de avaliação não encontrado.</p>;
+
+  return (
+    <div className="max-w-4xl mx-auto pb-24">
+       <div className="space-y-2 mb-6">
+        <Link to={`/unidade/${unidadeId}/leitos`} className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Voltar para o Mapa de Leitos
+        </Link>
+        <h1 className="text-3xl font-bold text-primary">{schema.title}</h1>
+        <p className="text-muted-foreground">Unidade: {unidade?.nome}</p>
+      </div>
+
+      <div className="space-y-2 mb-8">
+          <div className="flex justify-between text-sm font-medium text-muted-foreground">
+              <span>Progresso</span>
+              <span>{answeredQuestions} / {totalQuestions}</span>
+          </div>
+        <ProgressBar value={answeredQuestions} max={totalQuestions} />
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {schema.questions.map((question, index) => (
+          <Card key={question.key} className="overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-lg">
+                <span className="text-primary mr-2">{index + 1}.</span>
+                {question.text}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                {question.options.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={respostas[question.key] === option.value ? "default" : "outline"}
+                    className={cn(
+                        "h-auto py-3 px-4 text-left justify-start",
+                        respostas[question.key] === option.value && "bg-primary text-primary-foreground"
+                    )}
+                    onClick={() => handleOptionSelect(question.key, option.value)}
+                  >
+                    {option.label}
+                  </Button>
                 ))}
-                <div className="flex justify-end pt-4">
-                    <button type="submit" className="px-6 py-2 text-white bg-green-600 rounded-md hover:bg-green-700">
-                        Salvar Avaliação
-                    </button>
-                </div>
-            </form>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t p-4">
+            <div className="max-w-4xl mx-auto flex justify-end">
+                 <Button type="submit" size="lg" disabled={!isFormComplete}>
+                    <CheckCircle className="h-5 w-5 mr-2"/>
+                    Finalizar e Salvar Avaliação
+                </Button>
+            </div>
         </div>
-    );
+      </form>
+    </div>
+  );
 }
