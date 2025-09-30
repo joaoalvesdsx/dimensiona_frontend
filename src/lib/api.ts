@@ -58,6 +58,7 @@ export interface UnidadeNaoInternacao {
   tipo: "nao-internacao";
   sitiosFuncionais: SitioFuncional[];
   hospitalId: string;
+  descricao?: string;
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
   cargos_unidade?: CargoUnidade[];
@@ -67,7 +68,6 @@ export type Unidade = UnidadeInternacao | UnidadeNaoInternacao;
 export type CargoUnidade = {
   cargoId: string;
   quantidade_funcionarios: number;
-  
 };
 
 export type CreateUnidadeInternacaoDTO = {
@@ -88,11 +88,9 @@ export type CreateUnidadeNaoInternacaoDTO = {
   cargos_unidade: CargoUnidade[];
 };
 
-
 export type UpdateUnidadeInternacaoDTO = Partial<CreateUnidadeInternacaoDTO>;
 export type UpdateUnidadeNaoInternacaoDTO =
-  Partial<CreateUnidadeNaoInternacaoDTO>
-
+  Partial<CreateUnidadeNaoInternacaoDTO>;
 
 export interface Usuario {
   id: string;
@@ -186,10 +184,9 @@ export interface CreateLeitoDTO {
 // ✅ **CORREÇÃO APLICADA AQUI**
 // O DTO de atualização agora permite o envio do status.
 export type UpdateLeitoDTO = Partial<{
-  justificativa?: string | null; 
+  justificativa?: string | null;
   status: string;
 }>;
-
 
 export interface SessaoAtiva {
   id: string;
@@ -486,8 +483,6 @@ export const updateUnidadeNaoInternacao = async (
   return response.data;
 };
 
-
-
 export const deleteUnidadeInternacao = async (
   setorId: string
 ): Promise<void> => {
@@ -598,8 +593,6 @@ export const updateBaseline = async (
 export const deleteBaseline = async (baselineId: string): Promise<void> => {
   await api.delete(`/baselines/${baselineId}`);
 };
-
-
 
 // ISSO AQUI É MUITO TROLL ->>>>
 export const getUnidadeById = async (
