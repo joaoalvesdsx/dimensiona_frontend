@@ -34,9 +34,8 @@ export default function SetorDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      console.log("Setor ID :", setorId);
       const unidadeData = await getUnidadeById(setorId);
-      console.log("Unidade Data:", unidadeData);
+
       setUnidade(unidadeData);
 
       if (unidadeData.tipo === "internacao") {
