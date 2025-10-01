@@ -38,22 +38,54 @@ export default function DimensionamentoTab({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true; // previne setState após unmount
     const buscarDadosAnalise = async () => {
+      console.log(
+        "[DimensionamentoTab] Iniciando busca de análise para unidade:",
+        unidade.id
+      );
+      if (!mounted) return;
       setLoading(true);
       setError(null);
       try {
         const data = await getAnaliseInternacao(unidade.id);
+        console.log("[DimensionamentoTab] Dados recebidos da API:", data);
+        console.log("[DimensionamentoTab] Tabela extraída:", data?.tabela);
+        if (!mounted) return;
         setAnaliseData(data);
-        setTabelaData(data.tabela); // A 'quantidadeProjetada' já vem calculada
-      } catch (err) {
-        setError("Falha ao carregar os dados da análise de dimensionamento.");
-        console.error(err);
+        setTabelaData(data?.tabela ?? []); // fallback seguro
+      } catch (err: any) {
+        console.error("[DimensionamentoTab] Erro ao buscar dados:", err);
+        console.log(
+          "[DimensionamentoTab] Status do erro:",
+          err?.response?.status
+        );
+        console.log("[DimensionamentoTab] Mensagem do erro:", err?.message);
+        if (!mounted) return;
+        // trata 404 / não encontrado como "sem dados" em vez de erro
+        const isNotFound =
+          err?.response?.status === 404 ||
+          /not\s*found/i.test(err?.message ?? "");
+        if (isNotFound) {
+          console.log("[DimensionamentoTab] Erro 404 - sem dados disponíveis");
+          setAnaliseData(null);
+          setTabelaData([]);
+        } else {
+          console.log(
+            "[DimensionamentoTab] Erro real - exibindo mensagem de erro"
+          );
+          setError("Falha ao carregar os dados da análise de dimensionamento.");
+        }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
+        console.log("[DimensionamentoTab] Loading finalizado");
       }
     };
 
     buscarDadosAnalise();
+    return () => {
+      mounted = false;
+    };
   }, [unidade.id]);
 
   const handleQuantidadeChange = (cargoId: string, novaQuantidade: number) => {
@@ -67,6 +99,7 @@ export default function DimensionamentoTab({
   };
 
   if (loading) {
+    console.log("[DimensionamentoTab] Renderizando skeleton (loading)");
     return (
       <div className="space-y-4">
         <Skeleton className="h-32 w-full" />
@@ -76,15 +109,39 @@ export default function DimensionamentoTab({
   }
 
   if (error) {
+    console.log("[DimensionamentoTab] Renderizando erro:", error);
     return <p className="text-red-500 text-center">{error}</p>;
+  }
+
+  // se não houver dados (ex.: 404 tratado), exibe mensagem amigável
+  if (!analiseData || tabelaData.length === 0) {
+    console.log(
+      "[DimensionamentoTab] Sem dados - analiseData:",
+      analiseData,
+      "tabelaData:",
+      tabelaData
+    );
+    return (
+      <div className="text-center text-gray-500 py-8">
+        <p>Nenhum dado de análise disponível para esta unidade.</p>
+      </div>
+    );
   }
 
   const totalLeitos = unidade.leitos?.length || 0;
   const taxaOcupacaoAtual =
     totalLeitos > 0 ? (sessoes.length / totalLeitos) * 100 : 0;
 
-  const distribuicao =
-    analiseData?.agregados.distribuicaoTotalClassificacao || {};
+  console.log("[DimensionamentoTab] Renderizando componente principal");
+  console.log(
+    "[DimensionamentoTab] tabelaData para AnaliseFinanceira:",
+    tabelaData
+  );
+  console.log(
+    "[DimensionamentoTab] unidade.horas_extra_projetadas:",
+    unidade.horas_extra_projetadas
+  );
+  console.log("[DimensionamentoTab] analiseData completo:", analiseData);
 
   return (
     <div className="space-y-6 animate-fade-in-down">
@@ -95,13 +152,17 @@ export default function DimensionamentoTab({
             <div>
               <p>
                 <strong>Período de Análise:</strong>{" "}
-                {new Date(
-                  analiseData?.agregados.periodo.inicio || ""
-                ).toLocaleDateString()}{" "}
+                {analiseData?.agregados?.periodo?.inicio
+                  ? new Date(
+                      analiseData.agregados.periodo.inicio
+                    ).toLocaleDateString()
+                  : "N/A"}{" "}
                 a{" "}
-                {new Date(
-                  analiseData?.agregados.periodo.fim || ""
-                ).toLocaleDateString()}
+                {analiseData?.agregados?.periodo?.fim
+                  ? new Date(
+                      analiseData.agregados.periodo.fim
+                    ).toLocaleDateString()
+                  : "N/A"}
               </p>
               <p>
                 <strong>Total de Pacientes Atuais:</strong> {sessoes.length}
@@ -113,27 +174,23 @@ export default function DimensionamentoTab({
               <p>
                 <strong>Taxa de Ocupação Média (Mês):</strong>{" "}
                 {(
-                  (analiseData?.agregados.taxaOcupacaoMensal || 0) * 100
+                  (analiseData?.agregados?.taxaOcupacaoMensal ?? 0) * 100
                 ).toFixed(2)}
                 %
               </p>
             </div>
             <div>
               <h4 className="font-semibold text-gray-700 mb-1">
-                Total de Pacientes-Dia no Mês:
+                Informações Adicionais:
               </h4>
-              {Object.keys(distribuicao).length > 0 ? (
-                <ul className="list-disc list-inside">
-                  {Object.entries(distribuicao).map(([key, value]) => (
-                    <li key={key}>
-                      {classificationMap[key] || key}:{" "}
-                      <strong>{value.toFixed(0)}</strong>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>Nenhum dado de classificação no período.</p>
-              )}
+              <p>
+                <strong>Total Leitos-Dia:</strong>{" "}
+                {analiseData?.agregados?.totalLeitosDia ?? 0}
+              </p>
+              <p>
+                <strong>Total Avaliações:</strong>{" "}
+                {analiseData?.agregados?.totalAvaliacoes ?? 0}
+              </p>
             </div>
           </div>
         </CardHeader>

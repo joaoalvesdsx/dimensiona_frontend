@@ -492,6 +492,7 @@ export const getUnidadesNaoInternacao = async (
 export const createUnidadeInternacao = async (
   data: CreateUnidadeInternacaoDTO
 ): Promise<UnidadeInternacao> => {
+  console.log("DATA : ", data)
   const response = await api.post("/unidades", data);
   return response.data;
 };
@@ -717,6 +718,7 @@ export const getAnaliseInternacao = async (
 export const getAnaliseNaoInternacao = async (
   unidadeId: string
 ): Promise<AnaliseNaoInternacaoResponse> => {
+  console.log("Buscando análise de não-internação para unidade:", unidadeId);
   const response = await api.get(
     `/dimensionamento/nao-internacao/${unidadeId}`
   );
@@ -824,8 +826,7 @@ export const getQuestionarioById = async (
 ): Promise<Questionario> => {
   const response = await api.get(`/questionarios/${questionarioId}`);
   return response.data;
-}
-  
+};
 
 export const createQuestionario = async (
   data: CreateQuestionarioDTO
