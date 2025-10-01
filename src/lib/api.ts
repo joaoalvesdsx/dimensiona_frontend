@@ -66,7 +66,8 @@ export interface UnidadeNaoInternacao {
 export type Unidade = UnidadeInternacao | UnidadeNaoInternacao;
 
 export type CargoUnidade = {
-  cargoId: string;
+  id: string; // Adicionado ID para referência
+  cargo: Cargo;
   quantidade_funcionarios: number;
 };
 
@@ -77,7 +78,7 @@ export type CreateUnidadeInternacaoDTO = {
   scpMetodoId?: string;
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
-  cargos_unidade: CargoUnidade[];
+  cargos_unidade: { cargoId: string; quantidade_funcionarios: number }[];
 };
 export type CreateUnidadeNaoInternacaoDTO = {
   hospitalId: string;
@@ -85,7 +86,7 @@ export type CreateUnidadeNaoInternacaoDTO = {
   descricao?: string;
   horas_extra_reais?: string;
   horas_extra_projetadas?: string;
-  cargos_unidade: CargoUnidade[];
+  cargos_unidade: { cargoId: string; quantidade_funcionarios: number }[];
 };
 
 export type UpdateUnidadeInternacaoDTO = Partial<CreateUnidadeInternacaoDTO>;
@@ -181,8 +182,6 @@ export interface CreateLeitoDTO {
   unidadeId: string;
   numero: string;
 }
-// ✅ **CORREÇÃO APLICADA AQUI**
-// O DTO de atualização agora permite o envio do status.
 export type UpdateLeitoDTO = Partial<{
   justificativa?: string | null;
   status: string;
@@ -328,11 +327,49 @@ export interface CargoSitio {
   };
 }
 
+// --- INTERFACES PARA DIMENSIONAMENTO (BASEADO NO DTO DO BACKEND) ---
+export interface LinhaAnaliseFinanceira {
+  cargoId: string;
+  cargoNome: string;
+  isScpCargo: boolean;
+  salario: number;
+  adicionais: number;
+  valorHorasExtras: number;
+  custoPorFuncionario: number;
+  cargaHoraria: number;
+  quantidadeAtual: number;
+  quantidadeProjetada: number;
+}
+
+export interface AnaliseInternacaoResponse {
+  agregados: {
+    periodo: {
+      inicio: string;
+      fim: string;
+      dias: number;
+    };
+    totalLeitosDia: number;
+    totalAvaliacoes: number;
+    taxaOcupacaoMensal: number;
+  };
+  tabela: LinhaAnaliseFinanceira[];
+}
+
+export interface GrupoCargosNaoInternacao {
+  id: string;
+  nome: string;
+  cargos: LinhaAnaliseFinanceira[];
+}
+
+export interface AnaliseNaoInternacaoResponse {
+  tabela: GrupoCargosNaoInternacao[];
+  horasExtrasProjetadas: number;
+}
+
 // --- FUNÇÕES DA API ---
 
 // ADMIN GLOBAL
 export const getAdmins = async (): Promise<Admin[]> => {
-  // A rota /admin/listar não existe no backend, simulando uma lista vazia.
   console.warn(
     "API para listar admins não encontrada no backend. Retornando array vazio."
   );
@@ -343,7 +380,6 @@ export const createAdmin = async (data: any): Promise<Admin> => {
   return response.data;
 };
 export const deleteAdmin = async (id: string): Promise<void> => {
-  // Rota também ausente no backend, precisa ser criada.
   console.warn(`API para deletar admin ${id} não encontrada no backend.`);
   return Promise.resolve();
 };
@@ -594,7 +630,6 @@ export const deleteBaseline = async (baselineId: string): Promise<void> => {
   await api.delete(`/baselines/${baselineId}`);
 };
 
-// ISSO AQUI É MUITO TROLL ->>>>
 export const getUnidadeById = async (
   unidadeId: string
 ): Promise<UnidadeInternacao | UnidadeNaoInternacao> => {
@@ -603,11 +638,13 @@ export const getUnidadeById = async (
     return { ...response.data, tipo: "internacao" };
   } catch (error) {
     const response = await api.get(`/unidades-nao-internacao/${unidadeId}`);
-    const data = response.data;
+
+    const data = response.data; // Acessa a propriedade 'data'
     if (data.cargosUnidade) {
       data.cargos_unidade = data.cargosUnidade;
       delete data.cargosUnidade;
     }
+
     return { ...data, tipo: "nao-internacao" };
   }
 };
@@ -651,7 +688,7 @@ export const changePassword = async (
   });
 };
 
-// DIMENSIONAMENTO
+// DIMENSIONAMENTO (ANTIGO)
 export const getDimensionamentosPorUnidade = async (
   unidadeId: string
 ): Promise<Dimensionamento[]> => {
@@ -665,6 +702,23 @@ export const createDimensionamento = async (
   const response = await api.post(
     `/unidades/${unidadeId}/dimensionamento`,
     data
+  );
+  return response.data;
+};
+
+// --- NOVAS ROTAS DE DIMENSIONAMENTO ---
+export const getAnaliseInternacao = async (
+  unidadeId: string
+): Promise<AnaliseInternacaoResponse> => {
+  const response = await api.get(`/dimensionamento/internacao/${unidadeId}`);
+  return response.data;
+};
+
+export const getAnaliseNaoInternacao = async (
+  unidadeId: string
+): Promise<AnaliseNaoInternacaoResponse> => {
+  const response = await api.get(
+    `/dimensionamento/nao-internacao/${unidadeId}`
   );
   return response.data;
 };
