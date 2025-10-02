@@ -1,373 +1,362 @@
-import React from 'react';
-import styled from 'styled-components';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis } from 'recharts';
-import { HeatMapData } from '../types/hospital';
+import * as React from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import {
+  ResponsiveContainer,
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ZAxis,
+  Cell,
+} from "recharts";
 
-const ChartContainer = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+/** ===== Tipos ===== */
+export interface HeatMapData {
+  hospital: string;
+  sector: string;
+  value: number; // 0..100 (taxa de ocupação)
+  status?: "low" | "medium" | "high";
+}
 
-  &:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const ChartTitle = styled.h3`
-  color: #4b5563;
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-  text-align: center;
-`;
-
-const ViewToggle = styled.div`
-  display: flex;
-  background: #f3f4f6;
-  border-radius: 8px;
-  padding: 4px;
-  margin-bottom: 20px;
-  justify-content: center;
-`;
-
-const ToggleButton = styled.button<{ active: boolean }>`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  ${({ active }) => active 
-    ? `
-      background: #4b5563;
-      color: white;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    `
-    : `
-      background: transparent;
-      color: #6b7280;
-      
-      &:hover {
-        color: #4b5563;
-        background: rgba(75, 85, 99, 0.05);
-      }
-    `
-  }
-`;
-
-const ChartsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  
-  @media (max-width: 1200px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SingleChartContainer = styled.div`
-  min-height: 350px;
-`;
-
-const ChartSubtitle = styled.h4`
-  color: #6b7280;
-  font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 16px;
-  text-align: center;
-`;
-
-const HeatMapGrid = styled.div`
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-`;
-
-const HeatMapCell = styled.div<{ status: string }>`
-  padding: 16px;
-  border-radius: 8px;
-  text-align: center;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  
-  ${({ status }) => {
-    switch (status) {
-      case 'high':
-        return `
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          color: white;
-        `;
-      case 'medium':
-        return `
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: white;
-        `;
-      case 'low':
-        return `
-          background: linear-gradient(135deg, #10b981, #059669);
-          color: white;
-        `;
-      default:
-        return `
-          background: #f3f4f6;
-          color: #4b5563;
-        `;
-    }
-  }}
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const CellTitle = styled.h4`
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-`;
-
-const CellSubtitle = styled.p`
-  font-size: 0.8rem;
-  opacity: 0.9;
-  margin-bottom: 4px;
-`;
-
-const CellValue = styled.p`
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-`;
-
-const Legend = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  margin-top: 20px;
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const LegendColor = styled.div<{ status: string }>`
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  
-  ${({ status }) => {
-    switch (status) {
-      case 'high':
-        return 'background: #ef4444;';
-      case 'medium':
-        return 'background: #f59e0b;';
-      case 'low':
-        return 'background: #10b981;';
-      default:
-        return 'background: #f3f4f6;';
-    }
-  }}
-`;
-
-const LegendLabel = styled.span`
-  font-size: 0.9rem;
-  color: #4b5563;
-`;
-
-const ScatterTooltipContent = styled.div`
-  background: white;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-`;
-
-const ScatterTooltipLabel = styled.p`
-  color: #374151;
-  font-weight: 600;
-  margin-bottom: 4px;
-`;
-
-const ScatterTooltipValue = styled.p`
-  color: #6b7280;
-  margin: 2px 0;
-`;
+type SortMode = "critico" | "alfabetico";
 
 interface HeatScaleChartProps {
   data: HeatMapData[];
   title?: string;
+  subtitle?: string;
+  className?: string;
+  sortMode?: SortMode; // padrão: "critico"
 }
 
-type ViewMode = 'both' | 'grid' | 'scatter';
+/** ===== Utils de cor (escala contínua) ===== */
+function hexToRgb(hex: string) {
+  const h = hex.replace("#", "");
+  const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const v = parseInt(n, 16);
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+}
+function mixHex(a: string, b: string, t: number) {
+  const ca = hexToRgb(a),
+    cb = hexToRgb(b);
+  const r = Math.round(ca.r + (cb.r - ca.r) * t);
+  const g = Math.round(ca.g + (cb.g - ca.g) * t);
+  const b2 = Math.round(ca.b + (cb.b - ca.b) * t);
+  return `rgb(${r}, ${g}, ${b2})`;
+}
+/** 0..70: verde→âmbar | 70..85: âmbar→laranja | 85..100: laranja→vermelho */
+function valueToColor(v: number) {
+  const x = Math.max(0, Math.min(100, v));
+  if (x <= 70) return mixHex("#16a34a", "#f59e0b", x / 70); // verde -> âmbar
+  if (x <= 85) return mixHex("#f59e0b", "#f97316", (x - 70) / 15); // âmbar -> laranja
+  return mixHex("#f97316", "#ef4444", (x - 85) / 15); // laranja -> vermelho
+}
+function statusBadgeClass(v: number) {
+  if (v >= 85) return "bg-destructive text-destructive-foreground";
+  if (v >= 70) return "bg-warning text-warning-foreground";
+  return "bg-success text-success-foreground";
+}
 
-const getStatusLabel = (status: string) => {
-  switch (status) {
-    case 'high':
-      return 'Alta (≥80%)';
-    case 'medium':
-      return 'Média (60-79%)';
-    case 'low':
-      return 'Baixa (<60%)';
-    default:
-      return 'N/A';
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'high':
-      return '#ef4444';
-    case 'medium':
-      return '#f59e0b';
-    case 'low':
-      return '#10b981';
-    default:
-      return '#6b7280';
-  }
-};
-
-const CustomScatterTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <ScatterTooltipContent>
-        <ScatterTooltipLabel>{data.sector}</ScatterTooltipLabel>
-        <ScatterTooltipValue>Hospital: {data.hospital}</ScatterTooltipValue>
-        <ScatterTooltipValue>Taxa de Ocupação: {data.value}%</ScatterTooltipValue>
-        <ScatterTooltipValue>
-          Status: {data.status === 'high' ? 'Alto' : 
-                   data.status === 'medium' ? 'Médio' : 'Baixo'}
-        </ScatterTooltipValue>
-      </ScatterTooltipContent>
-    );
-  }
-  return null;
-};
-
-export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({ 
-  data, 
-  title = 'Mapa de Calor - Taxa de Ocupação' 
+/** ===== Componente principal ===== */
+export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
+  data,
+  title = "Mapa de Calor - Ocupação por Setor",
+  subtitle = "Cores indicam tendência: verde (OK), âmbar (atenção), vermelho (crítico).",
+  className,
+  sortMode = "critico",
 }) => {
-  const [viewMode, setViewMode] = React.useState<ViewMode>('both');
+  const [mode, setMode] = React.useState<SortMode>(sortMode);
+  const [tab, setTab] = React.useState<"grid" | "scatter" | "both">("both");
 
-  // Prepara dados para o scatter plot
-  const scatterData = data.map((item, index) => ({
-    x: index + 1,
-    y: item.value,
-    z: item.value,
-    sector: item.sector,
-    hospital: item.hospital,
-    status: item.status,
-    fill: getStatusColor(item.status)
-  }));
+  React.useEffect(() => {
+    const id = setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 80);
+    return () => clearTimeout(id);
+  }, [tab]);
 
-  const renderGridView = () => (
-    <SingleChartContainer>
-      <ChartSubtitle>Heat Map Grid - Diverging Scale</ChartSubtitle>
-      <HeatMapGrid>
-        {data.map((item, index) => (
-          <HeatMapCell key={index} status={item.status}>
-            <CellTitle>{item.sector}</CellTitle>
-            <CellSubtitle>{item.hospital}</CellSubtitle>
-            <CellValue>{item.value}%</CellValue>
-          </HeatMapCell>
-        ))}
-      </HeatMapGrid>
-    </SingleChartContainer>
-  );
+  const sorted = React.useMemo(() => {
+    const arr = [...data];
+    if (mode === "alfabetico") return arr.sort((a, b) => a.sector.localeCompare(b.sector, "pt-BR"));
+    return arr.sort((a, b) => (b.value ?? 0) - (a.value ?? 0)); // criticidade
+  }, [data, mode]);
 
-  const renderScatterView = () => (
-    <SingleChartContainer>
-      <ChartSubtitle>Scatter Plot - Taxa de Ocupação</ChartSubtitle>
-      <ResponsiveContainer width="100%" height={300}>
-        <ScatterChart margin={{ top: 20, right: 30, left: 40, bottom: 60 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-          <XAxis 
-            type="number" 
-            dataKey="x"
-            name="Setor"
-            tick={{ fontSize: 11, fill: '#6b7280' }}
-            domain={[0, data.length + 1]}
-          />
-          <YAxis 
-            type="number" 
-            dataKey="y"
-            name="Taxa"
-            tick={{ fontSize: 11, fill: '#6b7280' }}
-            tickFormatter={(value) => `${value}%`}
-            domain={[0, 100]}
-          />
-          <ZAxis type="number" dataKey="z" range={[50, 200]} />
-          <Tooltip content={<CustomScatterTooltip />} />
-          <Scatter 
-            data={scatterData} 
-            fill="#4b5563"
-          >
-            {scatterData.map((entry, index) => (
-              <Scatter key={`scatter-${index}`} fill={entry.fill} />
-            ))}
-          </Scatter>
-        </ScatterChart>
-      </ResponsiveContainer>
-    </SingleChartContainer>
-  );
+  const resumo = React.useMemo(() => {
+    if (!sorted.length) return null;
+    const vals = sorted.map((d) => d.value);
+    const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    const max = Math.max(...vals);
+    const min = Math.min(...vals);
+    const high = sorted.filter((d) => d.value >= 85).length;
+    const medium = sorted.filter((d) => d.value >= 70 && d.value < 85).length;
+    const low = sorted.filter((d) => d.value < 70).length;
+    return { avg, max, min, high, medium, low, total: sorted.length };
+  }, [sorted]);
 
-  const renderBothViews = () => (
-    <ChartsGrid>
-      {renderGridView()}
-      {renderScatterView()}
-    </ChartsGrid>
+  const scatterData = React.useMemo(
+    () =>
+      sorted.map((item, idx) => ({
+        x: idx + 1,
+        y: item.value,
+        z: Math.max(20, Math.min(160, item.value)),
+        sector: item.sector,
+        hospital: item.hospital,
+        color: valueToColor(item.value),
+      })),
+    [sorted]
   );
 
   return (
-    <ChartContainer>
-      <ChartTitle>{title}</ChartTitle>
-      
-      <ViewToggle>
-        <ToggleButton 
-          active={viewMode === 'both'} 
-          onClick={() => setViewMode('both')}
-        >
-          Grid + Scatter
-        </ToggleButton>
-        <ToggleButton 
-          active={viewMode === 'grid'} 
-          onClick={() => setViewMode('grid')}
-        >
-          Heat Map Grid
-        </ToggleButton>
-        <ToggleButton 
-          active={viewMode === 'scatter'} 
-          onClick={() => setViewMode('scatter')}
-        >
-          Scatter Plot
-        </ToggleButton>
-      </ViewToggle>
+    <Card className={cn("transition-shadow hover:shadow-md h-full", className)}>
+      <CardHeader className="space-y-2">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{subtitle}</CardDescription>
+          </div>
 
-      {viewMode === 'both' && renderBothViews()}
-      {viewMode === 'grid' && renderGridView()}
-      {viewMode === 'scatter' && renderScatterView()}
-      
-      <Legend>
-        <LegendItem>
-          <LegendColor status="low" />
-          <LegendLabel>Baixa Ocupação</LegendLabel>
-        </LegendItem>
-        <LegendItem>
-          <LegendColor status="medium" />
-          <LegendLabel>Ocupação Média</LegendLabel>
-        </LegendItem>
-        <LegendItem>
-          <LegendColor status="high" />
-          <LegendLabel>Alta Ocupação</LegendLabel>
-        </LegendItem>
-      </Legend>
-    </ChartContainer>
+          <div className="flex items-center gap-2 text-sm">
+            <button
+              onClick={() => setMode("critico")}
+              className={cn(
+                "px-3 py-1 rounded-md border",
+                mode === "critico"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted hover:bg-muted/80 border-border"
+              )}
+            >
+              Criticidade
+            </button>
+            <button
+              onClick={() => setMode("alfabetico")}
+              className={cn(
+                "px-3 py-1 rounded-md border",
+                mode === "alfabetico"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted hover:bg-muted/80 border-border"
+              )}
+            >
+              A–Z
+            </button>
+          </div>
+        </div>
+        
+        <div className="space-y-2 pt-2"> {/* Adicionado pt-2 para um respiro */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>0%</span>
+            <span>70%</span>
+            <span>85%</span>
+            <span>100%</span>
+          </div>
+          <div
+            className="h-2 w-full rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, #16a34a 0%, #f59e0b 70%, #f97316 85%, #ef4444 100%)",
+            }}
+          />
+          <div className="flex items-center gap-3 text-xs">
+            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#16a34a" }} /> OK
+            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#f59e0b" }} /> Atenção
+            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#ef4444" }} /> Crítico
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-5">
+        {resumo && (
+          // ===== ALTERAÇÃO 1: Ajuste no grid responsivo dos KPIs =====
+          // Trocamos `sm:grid-cols-3` por `md:grid-cols-3`.
+          // Agora ele só usará 3 colunas em telas médias, evitando a quebra em telas menores.
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <Kpi label="Média" value={`${resumo.avg}%`} />
+            <Kpi label="Máx" value={`${resumo.max}%`} strong />
+            <Kpi label="Mín" value={`${resumo.min}%`} />
+            {/* ===== ALTERAÇÃO 2: Rótulos dos KPIs encurtados ===== */}
+            <Kpi label="Críticos (≥85%)" value={resumo.high} />
+            <Kpi label="Atenção (70-84%)" value={resumo.medium} />
+            <Kpi label="Total de Setores" value={resumo.total} />
+          </div>
+        )}
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+          <div className="flex items-center justify-between">
+            <TabsList>
+              <TabsTrigger value="grid">Heat Map Grid</TabsTrigger>
+              <TabsTrigger value="scatter">Scatter Plot</TabsTrigger>
+              <TabsTrigger value="both">Grid + Scatter</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="grid" className="mt-4">
+            <GridView data={sorted} />
+          </TabsContent>
+
+          <TabsContent value="scatter" className="mt-4">
+            <ScatterView key={tab} data={scatterData} />
+          </TabsContent>
+
+          <TabsContent value="both" className="mt-4">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <GridView data={sorted} />
+              <ScatterView key={tab} data={scatterData} />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
+
+/** ===== Subcomponentes ===== */
+function GridView({ data }: { data: HeatMapData[] }) {
+  // Ajuste fino no grid para melhor visualização em telas médias
+  return (
+    <div>
+      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">Heat Map</h4>
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {data.map((item, idx) => {
+          const bg = valueToColor(item.value);
+          const fg = item.value >= 85 ? "#fff" : item.value >= 70 ? "#111" : "#0a0a0a";
+          return (
+            <div
+              key={`${item.sector}-${idx}`}
+              className="group relative border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
+              style={{ background: bg, color: fg }}
+              role="button"
+              aria-label={`${item.sector}: ${item.value}% de ocupação`}
+              title={`${item.sector} — ${item.value}%`}
+            >
+              <div className="p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-xs font-medium opacity-90 truncate max-w-[70%]">
+                    {item.sector}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-black/15 text-white/95 backdrop-blur-sm">
+                    {item.value}%
+                  </span>
+                </div>
+                <div className="mt-3 h-1.5 w-full rounded-full bg-black/20 overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${item.value}%`, background: "rgba(255,255,255,0.9)" }}
+                  />
+                </div>
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 -bottom-2 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition">
+                <div className="mx-2 mb-2 rounded-md bg-background text-foreground text-xs border shadow p-2">
+                  <div className="font-semibold">{item.sector}</div>
+                  <div className="text-muted-foreground">
+                    Ocupação:&nbsp;<span className="font-semibold">{item.value}%</span>
+                  </div>
+                  <div className="mt-1">
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded", statusBadgeClass(item.value))}>
+                      {item.value >= 85 ? "Crítico" : item.value >= 70 ? "Atenção" : "OK"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ScatterView({
+  data,
+}: {
+  data: Array<{ x: number; y: number; z: number; sector: string; hospital: string; color: string }>;
+}) {
+  const axisTick = { fontSize: 12, fill: "hsl(var(--muted-foreground))" } as const;
+  const maxX = Math.max(1, data.length);
+
+  return (
+    <div>
+      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">Scatter Plot</h4>
+      <div className="h-[320px] min-h-[320px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 8, right: 16, left: 8, bottom: 32 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis
+              type="number"
+              dataKey="x"
+              name="Setor"
+              tick={axisTick}
+              allowDecimals={false}
+              domain={[1, maxX]}
+            />
+            <YAxis
+              type="number"
+              dataKey="y"
+              name="Taxa"
+              tick={axisTick}
+              tickFormatter={(v) => `${v}%`}
+              domain={[0, 100]}
+            />
+            <ZAxis type="number" dataKey="z" range={[40, 160]} />
+            <Tooltip
+              content={({ active, payload }: any) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="bg-background border border-border rounded-lg shadow-lg p-3 text-sm">
+                    <p className="font-bold text-foreground mb-1">{d.sector}</p>
+                    <p className="text-muted-foreground">
+                      Hospital: <span className="font-semibold">{d.hospital}</span>
+                    </p>
+                    <p className="text-muted-foreground">
+                      Ocupação: <span className="font-semibold">{d.y}%</span>
+                    </p>
+                  </div>
+                );
+              }}
+            />
+            <Scatter data={data}>
+              {data.map((pt, i) => (
+                <Cell key={i} fill={pt.color} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+
+// ===== ALTERAÇÃO 3: Simplificação do componente Kpi =====
+// Removi a prop `badgeClass`, pois a cor já é indicada pelo valor.
+// Isso simplifica o componente e o código que o utiliza.
+function Kpi({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string | number;
+  strong?: boolean;
+}) {
+  // Determina a cor com base no valor para "Críticos" e "Atenção"
+  const valueColor =
+    label.startsWith("Críticos") && value > 0
+      ? "text-destructive"
+      : label.startsWith("Atenção") && value > 0
+      ? "text-amber-600" // Um tom de âmbar para atenção
+      : "text-foreground";
+
+  return (
+    <div className="bg-muted/40 p-3 rounded-lg text-center">
+      <div className={cn("text-xl", strong ? "font-extrabold" : "font-bold", valueColor)}>
+        {value}
+      </div>
+      <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
+        {label}
+      </div>
+    </div>
+  );
+}
