@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import {
   getUnidadeById,
   getSessoesAtivasByUnidadeId,
+  getSitiosFuncionaisByUnidadeId, // <--- ADICIONADO
   UnidadeInternacao,
   UnidadeNaoInternacao,
   SessaoAtiva,
@@ -34,16 +35,26 @@ export default function SetorDetailPage() {
     setLoading(true);
     setError(null);
     try {
+      // 1. Busca os dados base da unidade
       const unidadeData = await getUnidadeById(setorId);
 
-      setUnidade(unidadeData);
-
+      // 2. Verifica o tipo da unidade para buscar dados complementares
       if (unidadeData.tipo === "internacao") {
         setActiveTab("dimensionamento");
         const sessoesData = await getSessoesAtivasByUnidadeId(setorId);
         setSessoes(sessoesData);
+        setUnidade(unidadeData); // Armazena os dados da unidade de internação
       } else {
         setActiveTab("analise-financeira");
+        // CORREÇÃO: Busca os sítios funcionais com todos os detalhes de alocação
+        const sitiosDetalhados = await getSitiosFuncionaisByUnidadeId(setorId);
+        
+        // Combina os dados base com os detalhes de alocação
+        const unidadeCompleta = {
+          ...unidadeData,
+          sitiosFuncionais: sitiosDetalhados,
+        };
+        setUnidade(unidadeCompleta); // Armazena a unidade completa com todos os dados
       }
     } catch (err) {
       setError("Falha ao carregar dados do setor.");

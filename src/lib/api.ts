@@ -69,6 +69,7 @@ export type CargoUnidade = {
   id: string; // Adicionado ID para referência
   cargo: Cargo;
   quantidade_funcionarios: number;
+  cargoId: any;
 };
 
 export type CreateUnidadeInternacaoDTO = {
@@ -268,11 +269,15 @@ export interface SitioFuncional {
   id: string;
   nome: string;
   descricao?: string;
+  // Adição para que a entidade possa carregar os cargos já associados
+  cargosSitio?: CargoSitio[];
 }
+
 export interface CreateSitioFuncionalDTO {
   unidadeId: string;
   nome: string;
   descricao?: string;
+  cargos?: { cargoId: string; quantidade_funcionarios: number }[];
 }
 
 export interface CreateParametrosDTO {
@@ -331,7 +336,7 @@ export interface CargoSitio {
 export interface LinhaAnaliseFinanceira {
   cargoId: string;
   cargoNome: string;
-  isScpCargo: boolean;
+  isScpCargo: boolean; // Usado apenas para internação
   salario: number;
   adicionais: number;
   valorHorasExtras: number;
@@ -492,7 +497,7 @@ export const getUnidadesNaoInternacao = async (
 export const createUnidadeInternacao = async (
   data: CreateUnidadeInternacaoDTO
 ): Promise<UnidadeInternacao> => {
-  console.log("DATA : ", data)
+  console.log("DATA : ", data);
   const response = await api.post("/unidades", data);
   return response.data;
 };
@@ -858,6 +863,12 @@ export const getColetasPorHospital = async (
 };
 export const deleteColeta = async (id: string): Promise<void> => {
   await api.delete(`/coletas/${id}`);
+};
+export const getSitiosFuncionaisByUnidadeId = async (unidadeId: string): Promise<SitioFuncional[]> => {
+    // Esta rota busca os sítios com todos os cargos alocados de forma detalhada
+    const response = await api.get(`/sitios/unidades-nao-internacao/${unidadeId}/sitios`);
+    // O backend existente envolve a resposta em uma propriedade 'data'
+    return response.data.data;
 };
 
 export default api;

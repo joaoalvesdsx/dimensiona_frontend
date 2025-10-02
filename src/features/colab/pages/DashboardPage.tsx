@@ -27,7 +27,6 @@ import {
 } from "@/features/admin-hospital/types/hospital";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-// ===== NOVO: Importando componentes de Abas (Tabs) =====
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MetricCard = ({ title, value, icon: Icon }: any) => (
@@ -54,8 +53,6 @@ const EmptyState = ({ title, message }: { title: string; message: string }) => (
 
 export default function HospitalDashboardPage() {
   const { hospitalId } = useParams<{ hospitalId: string }>();
-  // ... (toda a sua lógica de useState, useEffect e useMemo permanece a mesma)
-  // Nenhuma alteração é necessária na busca de dados ou na preparação dos dados dos gráficos.
   const [stats, setStats] = useState<HospitalStats | null>(null);
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -90,7 +87,7 @@ export default function HospitalDashboardPage() {
 
         const baselineObj = Array.isArray(baselineData) ? baselineData[0] : baselineData;
         const hospitalComBaseline = { ...hospitalData, baseline: baselineObj ?? null };
-        const todasUnidades = [...unidadesInternacao, ...unidadesNaoInternacao];
+
         const unidadesStats = Array.isArray(statsData?.unidades) ? statsData.unidades : [];
         const precisaFallbackPorUnidade = new Set<string>();
         unidadesStats.forEach((u: any) => {
@@ -104,6 +101,7 @@ export default function HospitalDashboardPage() {
           }
         });
 
+        const todasUnidades = [...unidadesInternacao, ...unidadesNaoInternacao];
         setUnidades(todasUnidades);
         setStats(statsData);
         setHospital(hospitalComBaseline);
@@ -139,6 +137,7 @@ export default function HospitalDashboardPage() {
         }
         await Promise.all(workers);
         setSessoesMap(sessoesMapLocal);
+
       } catch (err) {
         setError("Falha ao carregar os dados do dashboard. Verifique a conexão e se o hospital possui dados cadastrados.");
         console.error(err);
@@ -151,7 +150,13 @@ export default function HospitalDashboardPage() {
   }, [hospitalId]);
 
   const pizzaData: ChartData[] = useMemo(() => {
-    const scpDistribution: Record<string, number> = { "Cuidados Mínimos": 0, "Cuidados Intermediários": 0, "Alta Dependência": 0, "Cuidados Semi-intensivos": 0, "Cuidados Intensivos": 0 };
+    const scpDistribution: Record<string, number> = {
+      "Cuidados Mínimos": 0,
+      "Cuidados Intermediários": 0,
+      "Alta Dependência": 0,
+      "Cuidados Semi-intensivos": 0,
+      "Cuidados Intensivos": 0,
+    };
     sessoesMap.forEach((sessoes) => {
       sessoes.forEach((sessao: any) => {
         const c = sessao?.classificacao;
@@ -163,7 +168,17 @@ export default function HospitalDashboardPage() {
       });
     });
     return Object.entries(scpDistribution)
-      .map(([name, value], i) => ({ name, value, color: ["hsl(var(--success))", "hsl(var(--primary))", "hsl(var(--warning))", "hsl(var(--muted-foreground))", "hsl(var(--destructive))"][i % 5] }))
+      .map(([name, value], i) => ({
+        name,
+        value,
+        color: [
+          "hsl(var(--success))",
+          "hsl(var(--primary))",
+          "hsl(var(--warning))",
+          "hsl(var(--muted-foreground))",
+          "hsl(var(--destructive))",
+        ][i % 5],
+      }))
       .filter((it) => it.value > 0);
   }, [sessoesMap]);
 
@@ -174,14 +189,22 @@ export default function HospitalDashboardPage() {
         const unidadeId = u?.unidade?.id;
         const unidadeNome = u?.unidade?.nome ?? "Setor";
         const totalLeitos = u?.totalLeitos ?? 0;
-        let taxa: number | null = typeof u?.ocupacao?.taxaOcupacao === "number" && isFinite(u.ocupacao.taxaOcupacao) ? u.ocupacao.taxaOcupacao : null;
+
+        let taxa: number | null =
+          typeof u?.ocupacao?.taxaOcupacao === "number" && isFinite(u.ocupacao.taxaOcupacao)
+            ? u.ocupacao.taxaOcupacao
+            : null;
+
         if ((taxa === null || taxa < 0 || taxa > 100) && totalLeitos > 0) {
           const sessoes = sessoesMap.get(unidadeId) || [];
           taxa = (sessoes.length / totalLeitos) * 100;
         }
+
         if (taxa === null || !isFinite(taxa) || totalLeitos === 0) return null;
+
         const value = Math.round(Math.max(0, Math.min(100, taxa)));
         const status = value >= 85 ? "high" : value >= 70 ? "medium" : "low";
+
         return { hospital: hospital?.nome || "N/A", sector: unidadeNome, value, status } as HeatMapData;
       })
       .filter(Boolean) as HeatMapData[];
@@ -189,55 +212,142 @@ export default function HospitalDashboardPage() {
 
   const { waterfallData, waterfallTitle, waterfallSubtitle } = useMemo(() => {
     const baseline = (hospital as any)?.baseline;
+
     if (baseline?.setores?.length) {
-      const parsed = (baseline.setores as any[]).map((s) => ({ name: String(s?.nome ?? "").trim(), value: parseFloat(String(s?.custo ?? "0")) || 0, ativo: s?.ativo !== false })).filter((s) => s.ativo && s.name && s.value > 0).sort((a, b) => b.value - a.value);
+      const parsed = (baseline.setores as any[])
+        .map((s) => ({
+          name: String(s?.nome ?? "").trim(),
+          value: parseFloat(String(s?.custo ?? "0")) || 0,
+          ativo: s?.ativo !== false,
+        }))
+        .filter((s) => s.ativo && s.name && s.value > 0)
+        .sort((a, b) => b.value - a.value);
+
       if (parsed.length) {
         const total = parseFloat(String(baseline.custo_total ?? "0")) || 0;
         let cum = total;
         const out: WaterfallData[] = [{ name: "Total", value: total, cumulative: total, type: "total" }];
-        parsed.forEach((s) => { out.push({ name: s.name, value: s.value, cumulative: cum, type: "positive" }); cum -= s.value; });
-        return { waterfallData: out, waterfallTitle: "Custos por Setor (Baseline)", waterfallSubtitle: "Fonte: Baseline do hospital" };
+        parsed.forEach((s) => {
+          out.push({ name: s.name, value: s.value, cumulative: cum, type: "positive" });
+          cum -= s.value;
+        });
+        return {
+          waterfallData: out,
+          waterfallTitle: "Custos por Setor (Baseline)",
+          waterfallSubtitle: "Fonte: Baseline do hospital",
+        };
       }
     }
-    const contribs = (unidades || []).map((u: any) => ({ name: String(u?.nome ?? "").trim() || "Unidade", value: parseFloat(String(u?.horas_extra_reais ?? "0")) || 0 })).filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
-    if (!contribs.length) { return { waterfallData: [], waterfallTitle: "Composição de Custos", waterfallSubtitle: null }; }
+
+    const contribs = (unidades || [])
+      .map((u: any) => ({
+        name: String(u?.nome ?? "").trim() || "Unidade",
+        value: parseFloat(String(u?.horas_extra_reais ?? "0")) || 0,
+      }))
+      .filter((x) => x.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    if (!contribs.length) {
+      return { waterfallData: [], waterfallTitle: "Composição de Custos", waterfallSubtitle: null };
+    }
+
     const totalFallback = contribs.reduce((sum, it) => sum + it.value, 0);
     let cum = totalFallback;
     const out: WaterfallData[] = [{ name: "Total", value: totalFallback, cumulative: totalFallback, type: "total" }];
-    contribs.forEach((c) => { out.push({ name: c.name, value: c.value, cumulative: cum, type: "positive" }); cum -= c.value; });
-    return { waterfallData: out, waterfallTitle: "Composição por Unidade (Horas Extras Reais)", waterfallSubtitle: "Fonte: Unidades — Horas Extras (R$)" };
+    contribs.forEach((c) => {
+      out.push({ name: c.name, value: c.value, cumulative: cum, type: "positive" });
+      cum -= c.value;
+    });
+
+    return {
+      waterfallData: out,
+      waterfallTitle: "Composição por Unidade (Horas Extras Reais)",
+      waterfallSubtitle: "Fonte: Unidades — Horas Extras (R$)",
+    };
   }, [hospital, unidades]);
 
   const horasExtraData = useMemo(() => {
     if (!unidades?.length) return [];
-    return unidades.map((u: any) => { const reais = parseFloat(u?.horas_extra_reais ?? "0"); const proj = parseFloat(u?.horas_extra_projetadas ?? "0"); if (reais > 0 || proj > 0) { return { name: u?.nome ?? "Unidade", "Horas Extras Reais": reais, "Horas Extras Projetadas": proj } as const; } return null; }).filter(Boolean) as { name: string; "Horas Extras Reais": number; "Horas Extras Projetadas": number }[];
+    return unidades
+      .map((u: any) => {
+        const reais = parseFloat(u?.horas_extra_reais ?? "0");
+        const proj = parseFloat(u?.horas_extra_projetadas ?? "0");
+        if (reais > 0 || proj > 0) {
+          return { name: u?.nome ?? "Unidade", "Horas Extras Reais": reais, "Horas Extras Projetadas": proj } as const;
+        }
+        return null;
+      })
+      .filter(Boolean) as { name: string; "Horas Extras Reais": number; "Horas Extras Projetadas": number }[];
   }, [unidades]);
 
   const occupationMetrics = useMemo(() => {
     if (!heatMapData.length) return null;
     const vals = heatMapData.map((d) => d.value);
-    return { avgOccupation: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length), maxOccupation: Math.max(...vals), minOccupation: Math.min(...vals), totalSectors: heatMapData.length, overcrowded: heatMapData.filter((d) => d.status === "high").length, underutilized: heatMapData.filter((d) => d.status === "low").length };
+    return {
+      avgOccupation: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length),
+      maxOccupation: Math.max(...vals),
+      minOccupation: Math.min(...vals),
+      totalSectors: heatMapData.length,
+      overcrowded: heatMapData.filter((d) => d.status === "high").length,
+      underutilized: heatMapData.filter((d) => d.status === "low").length,
+    };
   }, [heatMapData]);
 
-  if (loading) { /* ... spinner ... */ }
-  if (error) { /* ... error alert ... */ }
-  if (!stats || !hospital) { /* ... no data alert ... */ }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando dados do dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const totalHorasExtrasReais = unidades.reduce((sum, u: any) => { const valor = parseFloat(u?.horas_extra_reais ?? "0"); return sum + (isNaN(valor) ? 0 : valor); }, 0);
+  if (error) {
+    return (
+      <Alert variant="destructive" className="max-w-2xl mx-auto mt-10">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!stats || !hospital) {
+    return (
+      <Alert className="max-w-2xl mx-auto mt-10">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>Não foram encontrados dados para este hospital.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const totalHorasExtrasReais = unidades.reduce((sum, u: any) => {
+    const valor = parseFloat(u?.horas_extra_reais ?? "0");
+    return sum + (isNaN(valor) ? 0 : valor);
+  }, 0);
+
   const baseline = (hospital as any)?.baseline ?? null;
   const custoTotalBaseline = parseFloat(String(baseline?.custo_total ?? "0")) || 0;
-  const custoTotalDisplay = (baseline && custoTotalBaseline > 0) ? `R$ ${(custoTotalBaseline / 1000).toFixed(1)}k` : "—";
-  const horasExtrasDisplay = totalHorasExtrasReais > 0 ? `R$ ${(totalHorasExtrasReais / 1000).toFixed(1)}k` : "R$ 0,0k";
+
+  const custoTotalDisplay =
+    (baseline && custoTotalBaseline > 0) ? `R$ ${(custoTotalBaseline / 1000).toFixed(1)}k` : "—";
+
+  const horasExtrasDisplay =
+    totalHorasExtrasReais > 0 ? `R$ ${(totalHorasExtrasReais / 1000).toFixed(1)}k` : "R$ 0,0k";
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header (permanece igual) */}
       <div>
-        <h1 className="text-3xl font-bold text-primary">{hospital.nome}</h1>
+        {/* ==================================================================== */}
+        {/* CORREÇÃO PRINCIPAL APLICADA AQUI PARA EVITAR O ERRO               */}
+        {/* Usando optional chaining (?.) para acessar 'nome' de forma segura. */}
+        {/* Se 'hospital' for null, não tentará ler 'nome' e não dará erro.   */}
+        {/* ==================================================================== */}
+        <h1 className="text-3xl font-bold text-primary">{hospital?.nome}</h1>
         <p className="text-muted-foreground">Visão geral dos indicadores chave de desempenho</p>
       </div>
 
-      {/* KPIs (permanece igual) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard title="Ocupação Média" value={`${occupationMetrics?.avgOccupation || 0}%`} icon={BarChart} />
         <MetricCard title="Total de Leitos" value={stats.totalLeitos} icon={Building} />
@@ -245,7 +355,6 @@ export default function HospitalDashboardPage() {
         <MetricCard title="Horas Extras (Real)" value={horasExtrasDisplay} icon={Hourglass} />
       </div>
 
-      {/* ===== NOVA ESTRUTURA DE ABAS ===== */}
       <Tabs defaultValue="ocupacao" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="ocupacao">
@@ -259,11 +368,8 @@ export default function HospitalDashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ===== CONTEÚDO DA ABA DE OCUPAÇÃO ===== */}
         <TabsContent value="ocupacao" className="mt-6">
-          {/* Layout mais generoso: 5 colunas no total em telas grandes */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Gráfico de Barras agora ocupa 3 de 5 colunas */}
             <div className="lg:col-span-3">
               {heatMapData.length > 0 && occupationMetrics ? (
                 <Card className="h-full transition-shadow hover:shadow-md">
@@ -275,8 +381,6 @@ export default function HospitalDashboardPage() {
                 <EmptyState title="Sem dados de ocupação" message="Não há dados de ocupação disponíveis." />
               )}
             </div>
-
-            {/* HeatScaleChart agora ocupa 2 de 5 colunas, tendo muito mais espaço */}
             <div className="lg:col-span-2">
               {heatMapData.length > 0 ? (
                 <div className="h-full">
@@ -289,7 +393,6 @@ export default function HospitalDashboardPage() {
           </div>
         </TabsContent>
 
-        {/* ===== CONTEÚDO DA ABA DE CUSTOS ===== */}
         <TabsContent value="custos" className="mt-6">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {waterfallData.length > 1 ? (
@@ -313,7 +416,6 @@ export default function HospitalDashboardPage() {
           </div>
         </TabsContent>
 
-        {/* ===== CONTEÚDO DA ABA DE PACIENTES ===== */}
         <TabsContent value="pacientes" className="mt-6">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {pizzaData.length > 0 ? (
