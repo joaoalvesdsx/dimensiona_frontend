@@ -339,11 +339,6 @@ export default function HospitalDashboardPage() {
   return (
     <div className="space-y-8 pb-10">
       <div>
-        {/* ==================================================================== */}
-        {/* CORREÇÃO PRINCIPAL APLICADA AQUI PARA EVITAR O ERRO               */}
-        {/* Usando optional chaining (?.) para acessar 'nome' de forma segura. */}
-        {/* Se 'hospital' for null, não tentará ler 'nome' e não dará erro.   */}
-        {/* ==================================================================== */}
         <h1 className="text-3xl font-bold text-primary">{hospital?.nome}</h1>
         <p className="text-muted-foreground">Visão geral dos indicadores chave de desempenho</p>
       </div>
@@ -368,11 +363,18 @@ export default function HospitalDashboardPage() {
           </TabsTrigger>
         </TabsList>
 
+        {/* ==================================================================== */}
+        {/* CORREÇÃO PRINCIPAL APLICADA AQUI                                   */}
+        {/* O layout de grid foi substituído por um flex-col para empilhar     */}
+        {/* os gráficos, dando a cada um a largura total da página.            */}
+        {/* ==================================================================== */}
         <TabsContent value="ocupacao" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3">
+          <div className="flex flex-col gap-6">
+
+            {/* Linha 1: Gráfico de Ocupação (agora com largura total) */}
+            <div>
               {heatMapData.length > 0 && occupationMetrics ? (
-                <Card className="h-full transition-shadow hover:shadow-md">
+                <Card className="transition-shadow hover:shadow-md">
                   <CardContent className="pt-6 min-h-[420px]">
                     <OccupationRateChart data={heatMapData} metrics={occupationMetrics} title="Ocupação por Setor" />
                   </CardContent>
@@ -381,15 +383,18 @@ export default function HospitalDashboardPage() {
                 <EmptyState title="Sem dados de ocupação" message="Não há dados de ocupação disponíveis." />
               )}
             </div>
-            <div className="lg:col-span-2">
+
+            {/* Linha 2: Mapa de Calor (agora com largura total) */}
+            <div>
               {heatMapData.length > 0 ? (
-                <div className="h-full">
-                  <HeatScaleChart data={heatMapData} title="Temperatura da Ocupação" className="h-full" />
+                <div>
+                  <HeatScaleChart data={heatMapData} title="Temperatura da Ocupação" />
                 </div>
               ) : (
                 <EmptyState title="Mapa de calor indisponível" message="O mapa de calor será exibido quando houver dados de ocupação." />
               )}
             </div>
+            
           </div>
         </TabsContent>
 
