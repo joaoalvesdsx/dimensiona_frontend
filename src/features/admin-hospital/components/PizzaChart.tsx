@@ -1,7 +1,14 @@
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { ChartData } from '../types/hospital';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
+import { ChartData } from "../types/hospital";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface PizzaChartProps {
   data: ChartData[];
@@ -14,14 +21,19 @@ const CustomTooltip = ({ active, payload }: any) => {
     return (
       <div className="bg-background border p-3 rounded-lg shadow-lg text-sm">
         <p className="font-bold text-foreground">{d.name}</p>
-        <p className="text-muted-foreground">Leitos: <span className="font-semibold">{d.value}</span></p>
+        <p className="text-muted-foreground">
+          Leitos: <span className="font-semibold">{d.value}</span>
+        </p>
       </div>
     );
   }
   return null;
 };
 
-export const PizzaChart: React.FC<PizzaChartProps> = ({ data, title = 'Distribuição de Leitos' }) => {
+export const PizzaChart: React.FC<PizzaChartProps> = ({
+  data,
+  title = "Distribuição de Leitos",
+}) => {
   return (
     <Card>
       <CardHeader>
@@ -32,10 +44,28 @@ export const PizzaChart: React.FC<PizzaChartProps> = ({ data, title = 'Distribui
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" iconSize={8} verticalAlign="bottom" wrapperStyle={{ fontSize: '12px' }} />
-              <Pie data={data} cx="50%" cy="50%" outerRadius={110} innerRadius={70} dataKey="value" strokeWidth={3} stroke="hsl(var(--background))" paddingAngle={3}>
+              <Legend
+                iconType="circle"
+                iconSize={8}
+                verticalAlign="bottom"
+                wrapperStyle={{ fontSize: "12px" }}
+              />
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                outerRadius={110}
+                innerRadius={70}
+                dataKey="value"
+                strokeWidth={3}
+                stroke="hsl(var(--background))"
+                paddingAngle={3}
+              >
                 {data.map((entry) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.color || 'hsl(var(--primary))'} />
+                  <Cell
+                    key={`cell-${entry.name}`}
+                    fill={entry.color || "hsl(var(--primary))"}
+                  />
                 ))}
               </Pie>
             </PieChart>

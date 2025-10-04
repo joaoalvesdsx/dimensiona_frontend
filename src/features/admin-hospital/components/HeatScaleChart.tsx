@@ -1,5 +1,11 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
@@ -35,7 +41,13 @@ interface HeatScaleChartProps {
 /** ===== Utils de cor (escala contínua) ===== */
 function hexToRgb(hex: string) {
   const h = hex.replace("#", "");
-  const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
   const v = parseInt(n, 16);
   return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
 }
@@ -80,7 +92,8 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
 
   const sorted = React.useMemo(() => {
     const arr = [...data];
-    if (mode === "alfabetico") return arr.sort((a, b) => a.sector.localeCompare(b.sector, "pt-BR"));
+    if (mode === "alfabetico")
+      return arr.sort((a, b) => a.sector.localeCompare(b.sector, "pt-BR"));
     return arr.sort((a, b) => (b.value ?? 0) - (a.value ?? 0)); // criticidade
   }, [data, mode]);
 
@@ -143,8 +156,10 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
             </button>
           </div>
         </div>
-        
-        <div className="space-y-2 pt-2"> {/* Adicionado pt-2 para um respiro */}
+
+        <div className="space-y-2 pt-2">
+          {" "}
+          {/* Adicionado pt-2 para um respiro */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>0%</span>
             <span>70%</span>
@@ -159,9 +174,21 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
             }}
           />
           <div className="flex items-center gap-3 text-xs">
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#16a34a" }} /> OK
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#f59e0b" }} /> Atenção
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#ef4444" }} /> Crítico
+            <span
+              className="inline-block h-3 w-3 rounded-sm"
+              style={{ background: "#16a34a" }}
+            />{" "}
+            OK
+            <span
+              className="inline-block h-3 w-3 rounded-sm"
+              style={{ background: "#f59e0b" }}
+            />{" "}
+            Atenção
+            <span
+              className="inline-block h-3 w-3 rounded-sm"
+              style={{ background: "#ef4444" }}
+            />{" "}
+            Crítico
           </div>
         </div>
       </CardHeader>
@@ -182,7 +209,11 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
           </div>
         )}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as any)}
+          className="w-full"
+        >
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="grid">Heat Map Grid</TabsTrigger>
@@ -216,11 +247,14 @@ function GridView({ data }: { data: HeatMapData[] }) {
   // Ajuste fino no grid para melhor visualização em telas médias
   return (
     <div>
-      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">Heat Map</h4>
+      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">
+        Heat Map
+      </h4>
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {data.map((item, idx) => {
           const bg = valueToColor(item.value);
-          const fg = item.value >= 85 ? "#fff" : item.value >= 70 ? "#111" : "#0a0a0a";
+          const fg =
+            item.value >= 85 ? "#fff" : item.value >= 70 ? "#111" : "#0a0a0a";
           return (
             <div
               key={`${item.sector}-${idx}`}
@@ -242,7 +276,10 @@ function GridView({ data }: { data: HeatMapData[] }) {
                 <div className="mt-3 h-1.5 w-full rounded-full bg-black/20 overflow-hidden">
                   <div
                     className="h-full rounded-full"
-                    style={{ width: `${item.value}%`, background: "rgba(255,255,255,0.9)" }}
+                    style={{
+                      width: `${item.value}%`,
+                      background: "rgba(255,255,255,0.9)",
+                    }}
                   />
                 </div>
               </div>
@@ -250,11 +287,21 @@ function GridView({ data }: { data: HeatMapData[] }) {
                 <div className="mx-2 mb-2 rounded-md bg-background text-foreground text-xs border shadow p-2">
                   <div className="font-semibold">{item.sector}</div>
                   <div className="text-muted-foreground">
-                    Ocupação:&nbsp;<span className="font-semibold">{item.value}%</span>
+                    Ocupação:&nbsp;
+                    <span className="font-semibold">{item.value}%</span>
                   </div>
                   <div className="mt-1">
-                    <span className={cn("text-[10px] px-2 py-0.5 rounded", statusBadgeClass(item.value))}>
-                      {item.value >= 85 ? "Crítico" : item.value >= 70 ? "Atenção" : "OK"}
+                    <span
+                      className={cn(
+                        "text-[10px] px-2 py-0.5 rounded",
+                        statusBadgeClass(item.value)
+                      )}
+                    >
+                      {item.value >= 85
+                        ? "Crítico"
+                        : item.value >= 70
+                        ? "Atenção"
+                        : "OK"}
                     </span>
                   </div>
                 </div>
@@ -270,14 +317,26 @@ function GridView({ data }: { data: HeatMapData[] }) {
 function ScatterView({
   data,
 }: {
-  data: Array<{ x: number; y: number; z: number; sector: string; hospital: string; color: string }>;
+  data: Array<{
+    x: number;
+    y: number;
+    z: number;
+    sector: string;
+    hospital: string;
+    color: string;
+  }>;
 }) {
-  const axisTick = { fontSize: 12, fill: "hsl(var(--muted-foreground))" } as const;
+  const axisTick = {
+    fontSize: 12,
+    fill: "hsl(var(--muted-foreground))",
+  } as const;
   const maxX = Math.max(1, data.length);
 
   return (
     <div>
-      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">Scatter Plot</h4>
+      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">
+        Scatter Plot
+      </h4>
       <div className="h-[320px] min-h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 16, left: 8, bottom: 32 }}>
@@ -307,7 +366,8 @@ function ScatterView({
                   <div className="bg-background border border-border rounded-lg shadow-lg p-3 text-sm">
                     <p className="font-bold text-foreground mb-1">{d.sector}</p>
                     <p className="text-muted-foreground">
-                      Hospital: <span className="font-semibold">{d.hospital}</span>
+                      Hospital:{" "}
+                      <span className="font-semibold">{d.hospital}</span>
                     </p>
                     <p className="text-muted-foreground">
                       Ocupação: <span className="font-semibold">{d.y}%</span>
@@ -328,7 +388,6 @@ function ScatterView({
   );
 }
 
-
 // ===== ALTERAÇÃO 3: Simplificação do componente Kpi =====
 // Removi a prop `badgeClass`, pois a cor já é indicada pelo valor.
 // Isso simplifica o componente e o código que o utiliza.
@@ -343,15 +402,21 @@ function Kpi({
 }) {
   // Determina a cor com base no valor para "Críticos" e "Atenção"
   const valueColor =
-    label.startsWith("Críticos") && value > 0
+    label.startsWith("Críticos") && typeof value === "number" && value > 0
       ? "text-destructive"
-      : label.startsWith("Atenção") && value > 0
+      : label.startsWith("Atenção") && typeof value === "number" && value > 0
       ? "text-amber-600" // Um tom de âmbar para atenção
       : "text-foreground";
 
   return (
     <div className="bg-muted/40 p-3 rounded-lg text-center">
-      <div className={cn("text-xl", strong ? "font-extrabold" : "font-bold", valueColor)}>
+      <div
+        className={cn(
+          "text-xl",
+          strong ? "font-extrabold" : "font-bold",
+          valueColor
+        )}
+      >
         {value}
       </div>
       <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
