@@ -1,7 +1,9 @@
 import axios from "axios";
 
+export const API_BASE_URL = "http://localhost:3110";
+/**export const API_BASE_URL = "https://dimensiona.genustecnologia.com.br/api"; */
 const api = axios.create({
-  baseURL: "/api", // Usamos o proxy
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -122,7 +124,7 @@ export interface Cargo {
   adicionais_tributos?: string;
 }
 export type CreateCargoDTO = Omit<Cargo, "id"> & { hospitalId: string };
-export type UpdateCargoDTO = Partial<Omit<Cargo, "id">>;
+export type UpdateCargoDTO = Partial<Cargo>;
 
 export interface SetorBaseline {
   nome: string;
@@ -186,6 +188,7 @@ export interface CreateLeitoDTO {
 export type UpdateLeitoDTO = Partial<{
   justificativa?: string | null;
   status: string;
+  numero?: string;
 }>;
 
 export interface SessaoAtiva {
@@ -864,11 +867,15 @@ export const getColetasPorHospital = async (
 export const deleteColeta = async (id: string): Promise<void> => {
   await api.delete(`/coletas/${id}`);
 };
-export const getSitiosFuncionaisByUnidadeId = async (unidadeId: string): Promise<SitioFuncional[]> => {
-    // Esta rota busca os sítios com todos os cargos alocados de forma detalhada
-    const response = await api.get(`/sitios/unidades-nao-internacao/${unidadeId}/sitios`);
-    // O backend existente envolve a resposta em uma propriedade 'data'
-    return response.data.data;
+export const getSitiosFuncionaisByUnidadeId = async (
+  unidadeId: string
+): Promise<SitioFuncional[]> => {
+  // Esta rota busca os sítios com todos os cargos alocados de forma detalhada
+  const response = await api.get(
+    `/sitios/unidades-nao-internacao/${unidadeId}/sitios`
+  );
+  // O backend existente envolve a resposta em uma propriedade 'data'
+  return response.data.data;
 };
 
 export default api;

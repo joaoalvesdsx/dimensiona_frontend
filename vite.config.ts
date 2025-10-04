@@ -10,17 +10,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // --- ADIÇÃO AQUI ---
-  server: {
-    proxy: {
-      // Redireciona requisições de /api para o seu backend
-      "/api": {
-        target: "http://localhost:3110",
-        changeOrigin: true,
-        // Remove o '/api' antes de enviar para o backend
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-    },
-  },
-  // --- FIM DA ADIÇÃO ---
 });

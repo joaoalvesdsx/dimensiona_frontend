@@ -1,5 +1,12 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
@@ -260,6 +267,25 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
       })),
     [sorted]
   );
+}
+
+function ScatterView({
+  data,
+}: {
+  data: Array<{
+    x: number;
+    y: number;
+    z: number;
+    sector: string;
+    hospital: string;
+    color: string;
+  }>;
+}) {
+  const axisTick = {
+    fontSize: 12,
+    fill: "hsl(var(--muted-foreground))",
+  } as const;
+  const maxX = Math.max(1, data.length);
 
   return (
     <Card className={cn("transition-shadow hover:shadow-md h-full", className)}>
@@ -361,4 +387,4 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
       </CardContent>
     </Card>
   );
-};
+}

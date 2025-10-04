@@ -4,5 +4,7 @@ node_modules
 ./node_modules
 .env
 ./.env
-frontend.zip
-./frontend.zip
+frontend.tar.
+./frontend.tar
+
+frontend.tar

@@ -16,6 +16,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+
+    "allowJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false,
 
     "baseUrl": ".",
     "paths": {
