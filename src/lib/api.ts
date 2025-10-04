@@ -378,18 +378,15 @@ export interface AnaliseNaoInternacaoResponse {
 
 // ADMIN GLOBAL
 export const getAdmins = async (): Promise<Admin[]> => {
-  console.warn(
-    "API para listar admins não encontrada no backend. Retornando array vazio."
-  );
-  return Promise.resolve([]);
+  const response = await api.get("/colaboradores/admin");
+  return response.data;
 };
 export const createAdmin = async (data: any): Promise<Admin> => {
-  const response = await api.post("/admin/criar", data);
+  const response = await api.post("/colaboradores/admin/criar", data);
   return response.data;
 };
 export const deleteAdmin = async (id: string): Promise<void> => {
-  console.warn(`API para deletar admin ${id} não encontrada no backend.`);
-  return Promise.resolve();
+  const response = await api.delete(`/colaboradores/admin/${id}`);
 };
 
 // HOSPITAIS

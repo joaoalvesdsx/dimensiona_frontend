@@ -42,7 +42,13 @@ interface HeatScaleChartProps {
 /** ===== Utils de cor (escala contínua) ===== */
 function hexToRgb(hex: string) {
   const h = hex.replace("#", "");
-  const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
   const v = parseInt(n, 16);
   return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
 }
@@ -77,11 +83,14 @@ function GridView({ data }: { data: HeatMapData[] }) {
   // Ajuste fino no grid para melhor visualização em telas médias
   return (
     <div>
-      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">Heat Map</h4>
+      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">
+        Heat Map
+      </h4>
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {data.map((item, idx) => {
           const bg = valueToColor(item.value);
-          const fg = item.value >= 85 ? "#fff" : item.value >= 70 ? "#111" : "#0a0a0a";
+          const fg =
+            item.value >= 85 ? "#fff" : item.value >= 70 ? "#111" : "#0a0a0a";
           return (
             <div
               key={`${item.sector}-${idx}`}
@@ -103,7 +112,10 @@ function GridView({ data }: { data: HeatMapData[] }) {
                 <div className="mt-3 h-1.5 w-full rounded-full bg-black/20 overflow-hidden">
                   <div
                     className="h-full rounded-full"
-                    style={{ width: `${item.value}%`, background: "rgba(255,255,255,0.9)" }}
+                    style={{
+                      width: `${item.value}%`,
+                      background: "rgba(255,255,255,0.9)",
+                    }}
                   />
                 </div>
               </div>
@@ -111,11 +123,21 @@ function GridView({ data }: { data: HeatMapData[] }) {
                 <div className="mx-2 mb-2 rounded-md bg-background text-foreground text-xs border shadow p-2">
                   <div className="font-semibold">{item.sector}</div>
                   <div className="text-muted-foreground">
-                    Ocupação:&nbsp;<span className="font-semibold">{item.value}%</span>
+                    Ocupação:&nbsp;
+                    <span className="font-semibold">{item.value}%</span>
                   </div>
                   <div className="mt-1">
-                    <span className={cn("text-[10px] px-2 py-0.5 rounded", statusBadgeClass(item.value))}>
-                      {item.value >= 85 ? "Crítico" : item.value >= 70 ? "Atenção" : "OK"}
+                    <span
+                      className={cn(
+                        "text-[10px] px-2 py-0.5 rounded",
+                        statusBadgeClass(item.value)
+                      )}
+                    >
+                      {item.value >= 85
+                        ? "Crítico"
+                        : item.value >= 70
+                        ? "Atenção"
+                        : "OK"}
                     </span>
                   </div>
                 </div>
@@ -131,14 +153,26 @@ function GridView({ data }: { data: HeatMapData[] }) {
 function ScatterView({
   data,
 }: {
-  data: Array<{ x: number; y: number; z: number; sector: string; hospital: string; color: string }>;
+  data: Array<{
+    x: number;
+    y: number;
+    z: number;
+    sector: string;
+    hospital: string;
+    color: string;
+  }>;
 }) {
-  const axisTick = { fontSize: 12, fill: "hsl(var(--muted-foreground))" } as const;
+  const axisTick = {
+    fontSize: 12,
+    fill: "hsl(var(--muted-foreground))",
+  } as const;
   const maxX = Math.max(1, data.length);
 
   return (
     <div>
-      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">Scatter Plot</h4>
+      <h4 className="text-center text-sm font-medium text-muted-foreground mb-3">
+        Scatter Plot
+      </h4>
       <div className="h-[320px] min-h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 16, left: 8, bottom: 32 }}>
@@ -168,7 +202,8 @@ function ScatterView({
                   <div className="bg-background border border-border rounded-lg shadow-lg p-3 text-sm">
                     <p className="font-bold text-foreground mb-1">{d.sector}</p>
                     <p className="text-muted-foreground">
-                      Hospital: <span className="font-semibold">{d.hospital}</span>
+                      Hospital:{" "}
+                      <span className="font-semibold">{d.hospital}</span>
                     </p>
                     <p className="text-muted-foreground">
                       Ocupação: <span className="font-semibold">{d.y}%</span>
@@ -201,15 +236,21 @@ function Kpi({
 }) {
   // Determina a cor com base no valor para "Críticos" e "Atenção"
   const valueColor =
-    label.startsWith("Críticos") && value > 0
+    label.startsWith("Críticos") && typeof value === "number" && value > 0
       ? "text-destructive"
-      : label.startsWith("Atenção") && value > 0
+      : label.startsWith("Atenção") && typeof value === "number" && value > 0
       ? "text-amber-600" // Um tom de âmbar para atenção
       : "text-foreground";
 
   return (
     <div className="bg-muted/40 p-3 rounded-lg text-center">
-      <div className={cn("text-xl", strong ? "font-extrabold" : "font-bold", valueColor)}>
+      <div
+        className={cn(
+          "text-xl",
+          strong ? "font-extrabold" : "font-bold",
+          valueColor
+        )}
+      >
         {value}
       </div>
       <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
@@ -239,7 +280,8 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
 
   const sorted = React.useMemo(() => {
     const arr = [...data];
-    if (mode === "alfabetico") return arr.sort((a, b) => a.sector.localeCompare(b.sector, "pt-BR"));
+    if (mode === "alfabetico")
+      return arr.sort((a, b) => a.sector.localeCompare(b.sector, "pt-BR"));
     return arr.sort((a, b) => (b.value ?? 0) - (a.value ?? 0)); // criticidade
   }, [data, mode]);
 
@@ -267,124 +309,71 @@ export const HeatScaleChart: React.FC<HeatScaleChartProps> = ({
       })),
     [sorted]
   );
-}
-
-function ScatterView({
-  data,
-}: {
-  data: Array<{
-    x: number;
-    y: number;
-    z: number;
-    sector: string;
-    hospital: string;
-    color: string;
-  }>;
-}) {
-  const axisTick = {
-    fontSize: 12,
-    fill: "hsl(var(--muted-foreground))",
-  } as const;
-  const maxX = Math.max(1, data.length);
 
   return (
-    <Card className={cn("transition-shadow hover:shadow-md h-full", className)}>
-      <CardHeader className="space-y-2">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{subtitle}</CardDescription>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <button
-              onClick={() => setMode("critico")}
-              className={cn(
-                "px-3 py-1 rounded-md border",
-                mode === "critico"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted hover:bg-muted/80 border-border"
-              )}
-            >
-              Criticidade
-            </button>
-            <button
-              onClick={() => setMode("alfabetico")}
-              className={cn(
-                "px-3 py-1 rounded-md border",
-                mode === "alfabetico"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted hover:bg-muted/80 border-border"
-              )}
-            >
-              A–Z
-            </button>
-          </div>
-        </div>
-        
-        <div className="space-y-2 pt-2"> {/* Adicionado pt-2 para um respiro */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>0%</span>
-            <span>70%</span>
-            <span>85%</span>
-            <span>100%</span>
-          </div>
-          <div
-            className="h-2 w-full rounded-full"
-            style={{
-              background:
-                "linear-gradient(90deg, #16a34a 0%, #f59e0b 70%, #f97316 85%, #ef4444 100%)",
-            }}
-          />
-          <div className="flex items-center gap-3 text-xs">
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#16a34a" }} /> OK
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#f59e0b" }} /> Atenção
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "#ef4444" }} /> Crítico
-          </div>
-        </div>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{subtitle}</CardDescription>
       </CardHeader>
-
-      <CardContent className="space-y-5">
-        {resumo && (
-          // ===== ALTERAÇÃO 1: Ajuste no grid responsivo dos KPIs =====
-          // Trocamos `sm:grid-cols-3` por `md:grid-cols-3`.
-          // Agora ele só usará 3 colunas em telas médias, evitando a quebra em telas menores.
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Kpi label="Média" value={`${resumo.avg}%`} />
-            <Kpi label="Máx" value={`${resumo.max}%`} strong />
-            <Kpi label="Mín" value={`${resumo.min}%`} />
-            {/* ===== ALTERAÇÃO 2: Rótulos dos KPIs encurtados ===== */}
-            <Kpi label="Críticos (≥85%)" value={resumo.high} />
-            <Kpi label="Atenção (70-84%)" value={resumo.medium} />
-            <Kpi label="Total de Setores" value={resumo.total} />
-          </div>
-        )}
-
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-          <div className="flex items-center justify-between">
-            <TabsList>
-              <TabsTrigger value="grid">Heat Map Grid</TabsTrigger>
-              <TabsTrigger value="scatter">Scatter Plot</TabsTrigger>
-              <TabsTrigger value="both">Grid + Scatter</TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="grid" className="mt-4">
+      <CardContent>
+        <div className="mb-4 flex flex-wrap gap-2 justify-center">
+          <Kpi label="Média" value={resumo?.avg ?? "-"} />
+          <Kpi label="Máximo" value={resumo?.max ?? "-"} />
+          <Kpi label="Mínimo" value={resumo?.min ?? "-"} />
+          <Kpi label="Críticos" value={resumo?.high ?? "-"} strong />
+          <Kpi label="Atenção" value={resumo?.medium ?? "-"} />
+          <Kpi label="OK" value={resumo?.low ?? "-"} />
+        </div>
+        <Tabs
+          value={tab}
+          onValueChange={(value) =>
+            setTab(value as "grid" | "scatter" | "both")
+          }
+        >
+          <TabsList className="mb-4 flex justify-center">
+            <TabsTrigger value="grid">Heat Map</TabsTrigger>
+            <TabsTrigger value="scatter">Scatter Plot</TabsTrigger>
+            <TabsTrigger value="both">Ambos</TabsTrigger>
+          </TabsList>
+          <TabsContent value="grid">
             <GridView data={sorted} />
           </TabsContent>
-
-          <TabsContent value="scatter" className="mt-4">
-            <ScatterView key={tab} data={scatterData} />
+          <TabsContent value="scatter">
+            <ScatterView data={scatterData} />
           </TabsContent>
-
-          <TabsContent value="both" className="mt-4">
-            <div className="grid lg:grid-cols-2 gap-6">
+          <TabsContent value="both">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <GridView data={sorted} />
-              <ScatterView key={tab} data={scatterData} />
+              <ScatterView data={scatterData} />
             </div>
           </TabsContent>
         </Tabs>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            className={cn(
+              "px-3 py-1 rounded text-xs font-semibold border transition",
+              mode === "critico"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-foreground"
+            )}
+            onClick={() => setMode("critico")}
+          >
+            Ordenar por Criticidade
+          </button>
+          <button
+            className={cn(
+              "px-3 py-1 rounded text-xs font-semibold border transition",
+              mode === "alfabetico"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-foreground"
+            )}
+            onClick={() => setMode("alfabetico")}
+          >
+            Ordenar Alfabeticamente
+          </button>
+        </div>
       </CardContent>
     </Card>
   );
-}
+};
