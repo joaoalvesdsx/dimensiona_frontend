@@ -126,6 +126,9 @@ export default function BaselinePage() {
     field: keyof SetorBaseline,
     value: string | boolean
   ) => {
+     if (field === "custo") {
+    console.log("Valor recebido do CurrencyInput:", value);
+  }
     const novosSetores = [...(formData.setores || [])];
     const setorAtual = novosSetores[index];
     novosSetores[index] = {
